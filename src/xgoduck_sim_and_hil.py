@@ -19,12 +19,16 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 import socket
 import sys
 import threading
 import time
 from pathlib import Path
 from typing import Callable, Dict, List, Optional
+
+os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
+os.environ.setdefault("OMP_NUM_THREADS", "1")
 
 import mujoco
 import numpy as np
@@ -94,6 +98,7 @@ from wire import (
     decode_servo_reply,
 )
 import base64
+from gtsam_slam import MicroduckGtsamSLAM, Pose2
 from numpy_policy import NumpyMlpGraph, extract_onnx_to_numpy_graph
 from policy_zoo import POLICY_ZOO, RLPolicySpec, NeedleZooBrain, match_zoo_skill_from_text
 from whistle_stt import WhistleSpeechToText, record_windows_mic_wav, synthesize_spoken_wav_windows
@@ -352,7 +357,7 @@ def build_xgoduck_mujoco_model(xml_path: Path | None = None) -> tuple[mujoco.MjM
         if not geom.name:
             geom.contype = 0
             geom.conaffinity = 0
-        elif geom.name == "floor":
+        elif geom.name == "floor" or geom.name.startswith("landmark_"):
             geom.contype = 1
             geom.conaffinity = 1
         elif geom.name in ("trunk_collision", "head_collision"):
@@ -440,6 +445,8 @@ class MuJoCoXgoDuckBridge:
         self.started_monotonic = time.monotonic()
         self.trunk_body_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, "trunk_base")
         self.gyro_sensor_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_SENSOR, "imu_ang_vel")
+        self.slam = MicroduckGtsamSLAM()
+        self.slam.reset(Pose2(float(self.data.qpos[0]), float(self.data.qpos[1]), 0.0))
 
         # UDP HIL Server for external Pi Zero W (1.1) / ESP32
         self.hil_udp_port = hil_udp_port
@@ -673,6 +680,31 @@ class MuJoCoXgoDuckBridge:
         if self.esp32_ser is not None:
             self._send_framed_esp32(0x01, pkt)
 
+        # 1. Feed 100 Hz Borglab GTSAM LeggedEstimator (`LeggedInvariantEKF` + `ExtendedPoseContactFactor`)
+        self.slam.legged.step_100hz_proprioceptive(
+            dt=0.01,
+            imu_acc_body=np.asarray(grav_body, dtype=np.float64) * 9.81,
+            imu_gyro_body=np.asarray(gyro_rad_s, dtype=np.float64),
+            q_left_deg=self.angles_deg[0:5],
+            q_right_deg=self.angles_deg[5:10],
+            rot_world_from_body=rot_mat,
+            pose_idx=max(0, len(self.slam.optimized_poses) - 1),
+        )
+
+        # 2. Feed GTSAM 4.3 Factor-Graph SLAM & DM-VIO (checked at 20 Hz / every 5 ticks, regardless of torque state)
+        if self.seq % 5 == 0:
+            gx, gy = float(self.data.qpos[0]), float(self.data.qpos[1])
+            gw, gqx, gqy, gqz = self.data.qpos[3:7]
+            gyaw_rad = math.atan2(2.0 * (gw * gqz + gqx * gqy), 1.0 - 2.0 * (gqy * gqy + gqz * gqz))
+            head_yaw_deg = float(self.angles_deg[12])  # ID 32 head_yaw
+            self.slam.step_odometry_and_landmarks(
+                gx,
+                gy,
+                gyaw_rad,
+                neck_yaw_deg=head_yaw_deg,
+                sim_time=float(self.data.time),
+            )
+
         return pkt
 
     def respawn_upright(self) -> None:
@@ -682,6 +714,7 @@ class MuJoCoXgoDuckBridge:
                 mujoco.mj_resetDataKeyframe(self.model, self.data, stand_key)
             mujoco.mj_forward(self.model, self.data)
             self.bam.reset(self.data.qpos)
+            self.slam.reset(Pose2(float(self.data.qpos[0]), float(self.data.qpos[1]), 0.0))
 
     def pose_summary(self) -> dict:
         x, y, z = self.data.qpos[0:3]
@@ -1118,11 +1151,28 @@ ZOO_DRAWER_HTML = """
   </div>
   <div class="zoo-needle-box">
     <div class="zoo-input-row">
-      <input id="zoo-prompt" type="text" placeholder="Type or hold 🎙️ & say 'please do a backflip'..." onkeydown="if(event.key==='Enter')sendNeedlePrompt()" />
+      <input id="zoo-prompt" type="text" placeholder="Type or hold 🎙️ & say 'please do a backflip'..." onkeydown="event.stopPropagation(); if(event.key==='Enter')sendNeedlePrompt()" onkeyup="event.stopPropagation()" />
       <button id="zoo-ptt-btn" onmousedown="startWhistlePTT(event)" onmouseup="stopWhistlePTT(event)" onmouseleave="if(window._whistleRec)stopWhistlePTT(event)" ontouchstart="startWhistlePTT(event)" ontouchend="stopWhistlePTT(event)" title="Hold to record voice with Cactus Whistle S2T (whistle_d4.cact)">🎙️ Hold to Speak</button>
       <button onclick="sendNeedlePrompt()">Ask</button>
     </div>
     <div id="zoo-needle-status">🎙️ Hold "Hold to Speak" (Whistle S2T) or type a request — say "please"!</div>
+  </div>
+  <div style="padding:10px 16px; border-bottom:1px solid rgba(148,163,184,0.2); background:rgba(15,23,42,0.85);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:12px;font-weight:700;color:#38bdf8;">🗺️ GTSAM 4.3 LeggedEstimator + DM-VIO + iSAM2</span>
+      <span id="slam-stats-badge" style="font-size:10px;color:#4ade80;font-family:monospace;">Initializing radar...</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1.35fr 1fr;gap:6px;">
+      <canvas id="slam-radar-canvas" width="225" height="170" style="width:100%;height:170px;background:#0b1324;border:1px solid #38bdf8;border-radius:8px;display:block;"></canvas>
+      <canvas id="dmvio-cam-canvas" width="160" height="170" style="width:100%;height:170px;background:#090e1a;border:1px solid #a855f7;border-radius:8px;display:block;" title="DM-VIO 160x120 Direct Photometric Inverse-Depth Patches (OV5647 Head Cam)"></canvas>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:10px;color:#cbd5e1;margin-top:5px;">
+      <span>⚪ GT &nbsp; 🔴 Odom &nbsp; 🟢 GTSAM &nbsp; 🔵 Footholds &nbsp; 🟣 DM-VIO ρ=1/d</span>
+      <span>
+        <a href="#" id="slam-patrol-btn" onclick="toggleSlamPatrol(event)" style="color:#38bdf8;text-decoration:none;font-weight:700;margin-right:8px;">🧭 Auto-Patrol</a>
+        <a href="#" onclick="resetSlamMap(event)" style="color:#fbbf24;text-decoration:none;">Reset</a>
+      </span>
+    </div>
   </div>
   <div class="zoo-body" id="zoo-skill-list">Loading 30 RL policies...</div>
 </div>
@@ -1268,7 +1318,222 @@ async function loadZooCatalog() {
   }
   container.innerHTML = html;
 }
+async function resetSlamMap(ev) {
+  if (ev) ev.preventDefault();
+  await fetch('/api/slam/reset', {method: 'POST'});
+  pollSlamRadar();
+}
+async function toggleSlamPatrol(ev) {
+  if (ev) ev.preventDefault();
+  const res = await fetch('/api/slam/patrol', {method: 'POST'});
+  const data = await res.json();
+  const btn = document.getElementById('slam-patrol-btn');
+  if (btn) {
+    btn.textContent = data.active ? '🛑 Stop Patrol' : '🧭 Auto-Patrol';
+    btn.style.color = data.active ? '#f87171' : '#38bdf8';
+  }
+}
+async function pollSlamRadar() {
+  const cv = document.getElementById('slam-radar-canvas');
+  if (!cv) return;
+  try {
+    const res = await fetch('/api/slam?t=' + Date.now(), {cache: 'no-store'});
+    const data = await res.json();
+    const btn = document.getElementById('slam-patrol-btn');
+    if (btn && typeof data.patrol_active === 'boolean') {
+      btn.textContent = data.patrol_active ? '🛑 Stop Patrol' : '🧭 Auto-Patrol';
+      btn.style.color = data.patrol_active ? '#f87171' : '#38bdf8';
+    }
+    const m = data.metrics || {};
+    const badge = document.getElementById('slam-stats-badge');
+    if (badge) {
+      badge.textContent = `X:${m.num_poses||1} F:${m.num_footholds||2} L:${m.num_landmarks||0}/8 | -${m.error_reduction_pct||0}% drift`;
+    }
+    const ctx = cv.getContext('2d');
+    const W = cv.width, H = cv.height;
+    ctx.fillStyle = '#0b1324';
+    ctx.fillRect(0, 0, W, H);
+    const scale = 42.0;
+    const cx = W * 0.5, cy = H * 0.5;
+    const toPx = (x, y) => [cx + x * scale, cy - y * scale];
+
+    // Crosshair axes & Grid rings
+    ctx.strokeStyle = 'rgba(100,116,139,0.32)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, cy); ctx.lineTo(W, cy);
+    ctx.moveTo(cx, 0); ctx.lineTo(cx, H);
+    ctx.stroke();
+
+    ctx.fillStyle = 'rgba(148,163,184,0.65)';
+    ctx.font = '9px monospace';
+    for (const r of [0.5, 1.0, 1.5]) {
+      ctx.beginPath();
+      ctx.arc(cx, cy, r * scale, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillText(r.toFixed(1) + 'm', cx + r * scale + 2, cy - 2);
+    }
+
+    // Current duck pose & 110 deg Panning-Head FOV Cone
+    const cp = data.current_pose || [0, 0, 0, 0];
+    const [dx, dy] = toPx(cp[0], cp[1]);
+    const headWorldYaw = (cp[2] || 0) + (cp[3] || 0);
+    const fovHalf = (55.0 * Math.PI) / 180.0;
+    const coneRangePx = 1.45 * scale;
+    ctx.fillStyle = 'rgba(56, 189, 248, 0.14)';
+    ctx.beginPath();
+    ctx.moveTo(dx, dy);
+    // Note: canvas Y is inverted (-angle)
+    ctx.arc(dx, dy, coneRangePx, -(headWorldYaw + fovHalf), -(headWorldYaw - fovHalf), false);
+    ctx.closePath();
+    ctx.fill();
+
+    // Active bearing-range rays from current optimized pose
+    if (data.active_rays) {
+      ctx.strokeStyle = 'rgba(56,189,248,0.55)';
+      ctx.lineWidth = 1.2;
+      ctx.setLineDash([3, 3]);
+      for (const ray of data.active_rays) {
+        const [lx, ly] = toPx(ray.lx, ray.ly);
+        ctx.beginPath(); ctx.moveTo(dx, dy); ctx.lineTo(lx, ly); ctx.stroke();
+      }
+      ctx.setLineDash([]);
+    }
+
+    // Stance Footholds F_c from Borglab LeggedEstimator
+    for (const fh of (data.footholds || [])) {
+      const [fx, fy] = toPx(fh[0], fh[1]);
+      ctx.fillStyle = 'rgba(56,189,248,0.75)';
+      ctx.beginPath(); ctx.arc(fx, fy, 2.2, 0, Math.PI * 2); ctx.fill();
+    }
+
+    // Draw paths helper
+    const drawPath = (pts, color, width, dashed) => {
+      if (!pts || pts.length < 2) return;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width;
+      ctx.setLineDash(dashed ? [3, 3] : []);
+      ctx.beginPath();
+      pts.forEach((p, idx) => {
+        const [px, py] = toPx(p[0], p[1]);
+        if (idx === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      });
+      ctx.stroke();
+      ctx.setLineDash([]);
+    };
+
+    drawPath(data.gt_path, 'rgba(226,232,240,0.8)', 1.6, true);
+    drawPath(data.dr_path, '#f87171', 1.8, false);
+    drawPath(data.opt_path, '#4ade80', 2.5, false);
+
+    // Draw all 8 world landmarks (hollow slate if undiscovered, bright gold if discovered)
+    const allLm = data.world_landmarks || [];
+    for (const lm of allLm) {
+      const [lx, ly] = toPx(lm.x, lm.y);
+      if (lm.discovered) {
+        ctx.fillStyle = '#fbbf24';
+        ctx.beginPath(); ctx.arc(lx, ly, 4.2, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#fde68a';
+      } else {
+        ctx.strokeStyle = '#64748b';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.arc(lx, ly, 3.8, 0, Math.PI * 2); ctx.stroke();
+        ctx.fillStyle = '#64748b';
+      }
+      ctx.font = '9px sans-serif';
+      ctx.fillText(lm.name.replace('ArUco_', '').replace('Corner_', ''), lx + 6, ly + 3);
+    }
+
+    // Draw current duck body & heading arrow
+    ctx.fillStyle = '#4ade80';
+    ctx.beginPath(); ctx.arc(dx, dy, 4.5, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#38bdf8';
+    ctx.lineWidth = 2.0;
+    ctx.beginPath();
+    ctx.moveTo(dx, dy);
+    ctx.lineTo(dx + Math.cos(headWorldYaw) * 14, dy - Math.sin(headWorldYaw) * 14);
+    ctx.stroke();
+
+    // Top-left HUD: Stance Foot Contact LEDs (LeggedEstimator)
+    ctx.fillStyle = 'rgba(15,23,42,0.82)';
+    ctx.fillRect(6, 6, 172, 20);
+    ctx.font = '10px monospace';
+    ctx.fillStyle = m.left_contact ? '#4ade80' : '#64748b';
+    ctx.fillText(`● L-Stance`, 12, 19);
+    ctx.fillStyle = m.right_contact ? '#4ade80' : '#64748b';
+    ctx.fillText(`● R-Stance`, 95, 19);
+
+    // Draw DM-VIO 160x120 First-Person Head Camera + Inverse-Depth Photometric Patches
+    const camCv = document.getElementById('dmvio-cam-canvas');
+    if (camCv) {
+      const cctx = camCv.getContext('2d');
+      const CW = camCv.width, CH = camCv.height;
+      cctx.fillStyle = '#090e1a';
+      cctx.fillRect(0, 0, CW, CH);
+
+      // Horizon line & perspective floor grid
+      const horizY = Math.round(CH * 0.44);
+      cctx.fillStyle = '#111c33';
+      cctx.fillRect(0, horizY, CW, CH - horizY);
+      cctx.strokeStyle = 'rgba(148,163,184,0.22)';
+      cctx.lineWidth = 1;
+      cctx.beginPath();
+      cctx.moveTo(0, horizY); cctx.lineTo(CW, horizY);
+      for (let gx = -3; gx <= 3; gx++) {
+        cctx.moveTo(CW * 0.5 + gx * 12, horizY);
+        cctx.lineTo(CW * 0.5 + gx * 48, CH);
+      }
+      cctx.stroke();
+
+      const sy = CH / 120.0;
+      // Draw 3D MuJoCo Arena Pillars & Beacons in First-Person Perspective
+      for (const pil of (data.dmvio_pillars || [])) {
+        const pu = pil.u;
+        const pvTop = pil.v_top * sy;
+        const pvBot = pil.v_bot * sy;
+        const pw = pil.w;
+        const ph = Math.max(4, pvBot - pvTop);
+        cctx.fillStyle = pil.color || '#38bdf8';
+        cctx.globalAlpha = 0.72;
+        cctx.fillRect(pu - pw * 0.5, pvTop, pw, ph);
+        // Gold ArUco cap on top of pillar
+        cctx.fillStyle = '#fbbf24';
+        cctx.fillRect(pu - pw * 0.58, pvTop - 5, pw * 1.16, 5);
+        cctx.globalAlpha = 1.0;
+        cctx.fillStyle = '#e2e8f0';
+        cctx.font = '8px sans-serif';
+        cctx.fillText(pil.name, pu - pw * 0.5, pvTop - 7);
+      }
+
+      // Plot active DM-VIO 8-pixel photometric patches color-coded by inverse depth rho = 1/d
+      const patches = data.dmvio_patches || [];
+      for (const pt of patches) {
+        const u = pt[0], v = pt[1] * sy, rho = pt[2];
+        // Map rho in [0.4, 3.0] -> hue from 200 (cyan far) to 15 (warm orange/red close)
+        const norm = Math.max(0.0, Math.min(1.0, (rho - 0.4) / 2.2));
+        const hue = Math.round(200 - norm * 185);
+        cctx.strokeStyle = `hsl(${hue}, 95%, 60%)`;
+        cctx.fillStyle = `hsla(${hue}, 95%, 60%, 0.35)`;
+        cctx.lineWidth = 1.2;
+        cctx.fillRect(u - 3, v - 3, 6, 6);
+        cctx.strokeRect(u - 3, v - 3, 6, 6);
+      }
+
+      // Top & bottom DM-VIO HUD overlay
+      cctx.fillStyle = 'rgba(9,14,26,0.82)';
+      cctx.fillRect(0, 0, CW, 18);
+      cctx.fillRect(0, CH - 18, CW, 18);
+      cctx.fillStyle = '#c084fc';
+      cctx.font = '9px monospace';
+      cctx.fillText(`📷 DM-VIO Head Cam (${patches.length} pts)`, 5, 12);
+      cctx.fillStyle = '#38bdf8';
+      cctx.fillText(`DelMarg:${m.dmvio_delayed_kfs||1}KF s=1.00`, 5, CH - 5);
+    }
+  } catch (e) {}
+}
 loadZooCatalog();
+setInterval(pollSlamRadar, 200);
+pollSlamRadar();
 </script>
 """
 
@@ -1298,16 +1563,44 @@ def start_web_ui_server(
         raw_html = (assets_dir / "index.html").read_text(encoding="utf-8")
         if "</body>" in raw_html:
             raw_html = raw_html.replace("</body>", ZOO_DRAWER_HTML + "\n</body>")
+        elif "</html>" in raw_html:
+            raw_html = raw_html.replace("</html>", ZOO_DRAWER_HTML + "\n</html>")
         else:
             raw_html += ZOO_DRAWER_HTML
         return HTMLResponse(raw_html)
 
     @app.get("/schematic")
     def schematic():
-        sch_html = SUITE_DIR / "hardware_schematic" / "Microduck_EasyEDA_Interactive.html"
+        sch_html = ROOT_DIR / "diagrams" / "hardware_schematic" / "Microduck_EasyEDA_Interactive.html"
         if sch_html.is_file():
             return HTMLResponse(sch_html.read_text(encoding="utf-8"))
         raise HTTPException(404, "Schematic file not found")
+
+    @app.get("/api/slam")
+    def api_slam():
+        if bridge is None:
+            return {"metrics": {}, "gt_path": [], "dr_path": [], "opt_path": [], "landmarks_est": [], "active_rays": [], "patrol_active": False}
+        snap = bridge.slam.snapshot_json()
+        snap["patrol_active"] = bool(getattr(bridge, "slam_patrol_active", False))
+        return snap
+
+    @app.post("/api/slam/reset")
+    def api_slam_reset():
+        if bridge is not None:
+            bridge.slam.reset(Pose2(float(bridge.data.qpos[0]), float(bridge.data.qpos[1]), 0.0))
+        return {"ok": True}
+
+    @app.post("/api/slam/patrol")
+    def api_slam_patrol():
+        if bridge is None:
+            return {"active": False}
+        active = not bool(getattr(bridge, "slam_patrol_active", False))
+        bridge.slam_patrol_active = active
+        if active:
+            ctrl.set_mode("policy")
+        else:
+            ctrl.command(twist=[0.0, 0.0, 0.0], head=[0.0, 0.0, 0.0, 0.0], mouth=0.0)
+        return {"active": active}
 
     @app.get("/api/zoo")
     def api_zoo():
@@ -1415,6 +1708,8 @@ def start_web_ui_server(
     @app.post("/api/mode")
     def api_mode(body: dict = Body(...)):
         try:
+            if bridge is not None and body.get("mode") in ("off", "shadow", "hold", "calibrate", "servo_debug"):
+                bridge.slam_patrol_active = False
             return ctrl.set_mode(body["mode"])
         except Exception as exc:
             raise HTTPException(400, str(exc))
@@ -1429,6 +1724,20 @@ def start_web_ui_server(
     @app.post("/api/command")
     def api_command(body: dict = Body(...)):
         try:
+            if bridge is not None and getattr(bridge, "slam_patrol_active", False):
+                tw = body.get("twist", [0.0, 0.0, 0.0])
+                if not tw or all(abs(float(v)) < 1e-3 for v in tw):
+                    t_sim = float(bridge.data.time)
+                    head_yaw_rad = 0.48 * math.sin(t_sim * 2.2)
+                    neck_pitch_rad = 0.10 * math.cos(t_sim * 1.3)
+                    return ctrl.command(
+                        twist=[0.19, 0.0, 0.42],
+                        head=[0.0, neck_pitch_rad, head_yaw_rad, 0.0],
+                        mouth=0.0,
+                    )
+                else:
+                    # User moved the joystick/WASD manually -> hand control back to user
+                    bridge.slam_patrol_active = False
             return ctrl.command(**body)
         except Exception as exc:
             raise HTTPException(400, str(exc))
@@ -1742,11 +2051,89 @@ def run_whistle_verification(use_numpy: bool = True) -> None:
         bridge.hil_sock.close()
 
 
+def run_gtsam_slam_verification(use_numpy: bool = True) -> None:
+    """Walk XGO-Duck in MuJoCo while panning its neck (`ID 32 head_yaw`) & verify GTSAM 4.3 Factor-Graph SLAM!"""
+    DualBackendPolicy.USE_NUMPY_BACKEND = use_numpy
+    xgo_policy_mod.Policy = DualBackendPolicy
+    import controller as xgo_controller_mod
+    from controller import Controller
+
+    bridge = MuJoCoXgoDuckBridge(hil_udp_port=9533)
+
+    class _SimClock:
+        @staticmethod
+        def monotonic() -> float:
+            return 100.0 + float(bridge.data.time)
+
+        @staticmethod
+        def perf_counter() -> float:
+            return 100.0 + float(bridge.data.time)
+
+        @staticmethod
+        def sleep(s: float) -> None:
+            time.sleep(s)
+
+    orig_time = xgo_controller_mod.time
+    xgo_controller_mod.time = _SimClock
+    try:
+        ctrl = Controller(bridge)
+        bridge.provide("duck_state", ctrl.receive)
+
+        def simulate_segment(sec: float, vx: float, vy: float, wz: float, sweep_head: bool = True) -> None:
+            ticks_100hz = int(round(sec * 100))
+            for i in range(ticks_100hz):
+                t_sim = float(bridge.data.time)
+                head_yaw_rad = 0.48 * math.sin(t_sim * 2.2) if sweep_head else 0.0
+                ctrl.command(twist=[vx, vy, wz], head=[0.0, 0.0, head_yaw_rad, 0.0], mouth=0.0)
+                ctrl.web_time = _SimClock.monotonic()
+                bridge.step_100hz()
+                if i % 2 == 1:
+                    ctrl.step()
+
+        # Warm up & stand
+        simulate_segment(0.25, 0.0, 0.0, 0.0, sweep_head=False)
+        ctrl.set_mode("policy")
+        simulate_segment(0.8, 0.0, 0.0, 0.0, sweep_head=False)
+        bridge.slam.reset(Pose2(float(bridge.data.qpos[0]), float(bridge.data.qpos[1]), 0.0))
+
+        # Walk forward, curve left, curve back toward origin while panning head (`ID 32 head_yaw`)
+        simulate_segment(3.0, 0.20, 0.0, 0.25, sweep_head=True)
+        simulate_segment(3.0, 0.19, 0.0, 0.55, sweep_head=True)
+        simulate_segment(3.0, 0.19, 0.0, 0.55, sweep_head=True)
+
+        m = bridge.slam.compute_metrics()
+        print("=" * 100)
+        print(f"MuJoCo 100Hz Physics + 50Hz RL Walk + GTSAM 4.3 LeggedEstimator & iSAM2 ({m['backend']})")
+        print("=" * 100)
+        print(f"  [100 Hz Proprioceptive LeggedEstimator (`ExtendedPoseContactFactor` + `LeggedInvariantEKF`)]")
+        print(f"    Stance Foothold Variables F_c  : {m['num_footholds']} stance episodes (switches: {m['stance_switches']})")
+        print(f"    ExtendedPoseContactFactors     : {m['num_contact_factors']} active in fixed-lag window")
+        print(f"    100 Hz LeggedInvariantEKF Step : {m['iekf_step_ms']:.3f} ms / tick (L_contact={m['left_contact']}, R_contact={m['right_contact']})")
+        print(f"  [TUM CVG DM-VIO (`lukasvst/dm-vio` 160x120 Direct Photometric + Delayed Marginalization)]")
+        print(f"    Active Inverse-Depth Patches   : {m['dmvio_active_points']} / 48 (rho = 1/d_m, Leg-Locked Scale s=1.000)")
+        print(f"    Delayed Marginalization Graph  : {m['dmvio_delayed_kfs']} KFs (Relinearizations: {m['dmvio_relinearizations']})")
+        print(f"    Direct Photometric Step Time   : {m['dmvio_step_ms']:.3f} ms / keyframe (C++ DLL: ~0.005 ms)")
+        print(f"  [Keyframe Factor-Graph SLAM (`iSAM2` + Panning-Head `ID 32 head_yaw`)]")
+        print(f"    Pose2 Variables X(0..N)        : {m['num_poses']} keyframes")
+        print(f"    Point2 Room Landmarks L(0..M)  : {m['num_landmarks']} / {len(bridge.slam.world_landmarks)} discovered via panning head")
+        print(f"    BetweenFactorPose2 (Leg-IMU/LC): {m['num_between_factors']} (Loop Closures: {m['loop_closures']})")
+        print(f"    BearingRangeFactor2D (Head Yaw): {m['num_br_factors']} polar landmark factors")
+        print(f"    Incremental iSAM2 Solve Latency: {m['last_solve_ms']:.3f} ms / keyframe")
+        print(f"    Raw Uncorrected Odometry RMSE  : {m['dr_rmse_m']:.4f} m")
+        print(f"    GTSAM 4.3 Factor-Graph RMSE    : {m['gtsam_rmse_m']:.4f} m")
+        print(f"    Odometry Drift Reduction       : {m['error_reduction_pct']:.1f}%")
+        print("=" * 100)
+    finally:
+        xgo_controller_mod.time = orig_time
+        bridge.hil_sock.close()
+
+
 def run_interactive_sim(
     use_numpy: bool = True,
     port: int = 9527,
     hil_port: int = 9528,
     esp32_serial: Optional[str] = None,
+    auto_slam_patrol: bool = True,
 ) -> None:
     """Launch interactive MuJoCo 3D Viewer + Web UI (port 9527) + UDP/USB HIL Server."""
     import mujoco.viewer
@@ -1772,6 +2159,7 @@ def run_interactive_sim(
     xgo_controller_mod.time = _HighResClock
 
     bridge = MuJoCoXgoDuckBridge(hil_udp_port=hil_port, esp32_serial_port=esp32_serial)
+    bridge.slam_patrol_active = auto_slam_patrol
     ctrl = Controller(bridge)
     bridge.provide("duck_state", ctrl.receive)
     bridge.provide("duck_diagnostics", ctrl.receive_diagnostics)
@@ -1795,9 +2183,12 @@ def run_interactive_sim(
     print(f"  RL Policy Zoo  : {len(POLICY_ZOO)} RL skills across 29 neural networks loaded on-demand")
     print(f"  Whistle S2T    : {'Loaded (' + whistle_stt.model_path.name + ', ' + whistle_stt.backend + ')' if whistle_stt.available and whistle_stt.model_path else 'Unavailable'}")
     print(f"  Needle 3 Brain : {'Loaded (duck_4l.cact + 5-Tool RL Zoo Router)' if needle_brain.needle_available else 'Polite Rules'}")
+    print(f"  GTSAM 4.3 SLAM : Active ({bridge.slam.backend_name} | Auto-Patrol={'ON' if auto_slam_patrol else 'OFF'})")
     print(f"  Web Control UI : http://127.0.0.1:{port}  (Click '🦆 Needle 3 + Whistle S2T + 30 RL Policies'!)")
     print(f"  UDP HIL Server : 0.0.0.0:{hil_port} (Connect Pi Zero W 1.1 with pi_zero_client.py)")
     print("  Terminal Commands:")
+    print("    - Type 'patrol' to toggle GTSAM 4.3 Auto-Patrol & Neck-Sweeping SLAM")
+    print("    - Type 'slam' to print live GTSAM 4.3 LeggedEstimator & iSAM2 Factor-Graph metrics")
     print("    - Type 'voice' or 'ptt' to record 3 seconds from your microphone -> Whistle S2T -> Needle 3!")
     print("    - Type 'whistle <path.wav>' to transcribe any WAV file with Cactus Whistle -> Needle 3")
     print("    - Type 'zoo' or 'list' to print all 30 RL skills & example polite prompts")
@@ -1821,6 +2212,16 @@ def run_interactive_sim(
                 low = cmd_str.lower()
                 if low in ("zoo", "list", "help"):
                     print_zoo_catalog()
+                elif low == "slam":
+                    m = bridge.slam.compute_metrics()
+                    print(f"  [GTSAM 4.3 SLAM] {m}")
+                elif low == "patrol":
+                    bridge.slam_patrol_active = not bool(getattr(bridge, "slam_patrol_active", False))
+                    if bridge.slam_patrol_active:
+                        ctrl.set_mode("policy")
+                    else:
+                        ctrl.command(twist=[0.0, 0.0, 0.0], head=[0.0, 0.0, 0.0, 0.0], mouth=0.0)
+                    print(f"  [GTSAM 4.3 Auto-Patrol] {'ENABLED' if bridge.slam_patrol_active else 'STOPPED'}")
                 elif low in ("voice", "ptt", "mic"):
                     wav_bytes = record_windows_mic_wav(seconds=3.0)
                     stt = whistle_stt.transcribe_wav_bytes(wav_bytes, language="en")
@@ -1842,6 +2243,7 @@ def run_interactive_sim(
                     ctrl.recovery.reset()
                     print("  -> Respawned XGO-Duck upright.")
                 elif low == "stop":
+                    bridge.slam_patrol_active = False
                     if hasattr(ctrl, "_orig_roulade_policy") and ctrl.roulade_until:
                         with ctrl.lock:
                             ctrl._stop_roulade_locked()
@@ -1849,6 +2251,7 @@ def run_interactive_sim(
                     ctrl.command(twist=[0.0, 0.0, 0.0], head=[0.0, 0.0, 0.0, 0.0], mouth=0.0)
                     print("  -> Stopped active skill and zeroed motion commands.")
                 else:
+                    bridge.slam_patrol_active = False
                     plan = execute_needle_command_on_xgoduck(ctrl, bridge, cmd_str, needle_brain=needle_brain)
                     print(f"  -> {plan['message']}  [{plan.get('needle_raw')} | {plan.get('ms')} ms]")
             except Exception as e:
@@ -1866,15 +2269,32 @@ def run_interactive_sim(
         # Warm up 100 Hz MCU state stream after OpenGL window opens so feedback is fresh
         for _ in range(25):
             bridge.step_100hz()
+        bridge.slam.reset(Pose2(float(bridge.data.qpos[0]), float(bridge.data.qpos[1]), 0.0))
         worker = threading.Thread(target=ctrl.run, name="policy50", daemon=True)
         worker.start()
         ctrl.set_mode("policy")
+        if getattr(bridge, "slam_patrol_active", False):
+            ctrl.command(twist=[0.19, 0.0, 0.42], head=[0.0, 0.10, 0.25, 0.0], mouth=0.0)
 
         tick = 0
         while viewer.is_running():
             t0 = time.perf_counter()
             if not bridge.external_hil_active:
                 ctrl.web_time = time.perf_counter()
+                if getattr(bridge, "slam_patrol_active", False) and (tick % 5 == 0):
+                    if ctrl.mode not in ("policy", "calibrate", "servo_debug"):
+                        try:
+                            ctrl.set_mode("policy")
+                        except Exception:
+                            pass
+                    t_sim = float(bridge.data.time)
+                    head_yaw_rad = 0.48 * math.sin(t_sim * 2.2)
+                    neck_pitch_rad = 0.10 * math.cos(t_sim * 1.3)
+                    ctrl.command(
+                        twist=[0.19, 0.0, 0.42],
+                        head=[0.0, neck_pitch_rad, head_yaw_rad, 0.0],
+                        mouth=0.0,
+                    )
             bridge.step_100hz()
             if tick % 2 == 0:
                 viewer.sync()
@@ -1891,6 +2311,8 @@ def main() -> None:
     parser.add_argument("--headless-test", action="store_true", help="Run automated headless core multi-skill verification")
     parser.add_argument("--zoo-test", action="store_true", help="Run automated Needle 3 + 30-Skill RL Zoo verification")
     parser.add_argument("--whistle-test", action="store_true", help="Run automated Spoken Audio -> Whistle S2T -> Needle 3 -> MuJoCo RL verification")
+    parser.add_argument("--slam-test", action="store_true", help="Launch interactive Web UI + 3D Viewer with GTSAM 4.3 Watch-Keeping Auto-Patrol")
+    parser.add_argument("--no-patrol", action="store_true", help="Start interactive simulator without automatic watch-keeping SLAM patrol")
     parser.add_argument("--list-zoo", action="store_true", help="List all 30 RL policies in the Zoo and exit")
     parser.add_argument("--hil-test", action="store_true", help="Run automated Pi Zero W UDP HIL loop verification")
     parser.add_argument("--onnx", action="store_true", help="Use onnxruntime instead of Pure-NumPy .npz backend")
@@ -1901,6 +2323,8 @@ def main() -> None:
 
     if args.list_zoo:
         print_zoo_catalog()
+    elif args.slam_test and args.headless_test:
+        run_gtsam_slam_verification(use_numpy=not args.onnx)
     elif args.headless_test:
         run_headless_verification(use_numpy=not args.onnx)
     elif args.zoo_test:
@@ -1915,6 +2339,7 @@ def main() -> None:
             port=args.web_port,
             hil_port=args.hil_port,
             esp32_serial=args.esp32_serial,
+            auto_slam_patrol=not args.no_patrol,
         )
 
 

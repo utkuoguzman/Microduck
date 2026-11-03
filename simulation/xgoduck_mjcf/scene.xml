@@ -20,6 +20,56 @@
     <worldbody>
         <light pos="0 0 3.5" dir="0 0 -1" directional="true" />
         <geom name="floor" size="0 0 0.05" pos="0 0 0" type="plane" material="groundplane" />
+
+        <!-- GTSAM 4.3 & DM-VIO 3D Arena Landmarks / Obstacles (matches DEFAULT_WORLD_LANDMARKS) -->
+        <!-- 0: ArUco_Dock_0 at (0.85, 0.55) -->
+        <body name="lm_0_ArUco_Dock_0" pos="0.85 0.55 0">
+            <geom name="landmark_0_post" type="cylinder" size="0.045 0.14" pos="0 0 0.14" rgba="0.15 0.75 0.95 1" />
+            <geom name="landmark_0_cap" type="box" size="0.055 0.055 0.045" pos="0 0 0.30" rgba="0.98 0.75 0.15 1" />
+        </body>
+
+        <!-- 1: ArUco_Gate_1 at (0.90, -0.55) -->
+        <body name="lm_1_ArUco_Gate_1" pos="0.90 -0.55 0">
+            <geom name="landmark_1_post" type="cylinder" size="0.045 0.14" pos="0 0 0.14" rgba="0.20 0.85 0.45 1" />
+            <geom name="landmark_1_cap" type="box" size="0.055 0.055 0.045" pos="0 0 0.30" rgba="0.98 0.75 0.15 1" />
+        </body>
+
+        <!-- 2: ToF_Pillar_L at (0.05, 0.80) -->
+        <body name="lm_2_ToF_Pillar_L" pos="0.05 0.80 0">
+            <geom name="landmark_2_post" type="cylinder" size="0.055 0.18" pos="0 0 0.18" rgba="0.25 0.55 0.98 1" />
+            <geom name="landmark_2_ring" type="cylinder" size="0.062 0.025" pos="0 0 0.34" rgba="0.95 0.95 0.98 1" />
+        </body>
+
+        <!-- 3: ToF_Pillar_R at (0.05, -0.80) -->
+        <body name="lm_3_ToF_Pillar_R" pos="0.05 -0.80 0">
+            <geom name="landmark_3_post" type="cylinder" size="0.055 0.18" pos="0 0 0.18" rgba="0.68 0.35 0.98 1" />
+            <geom name="landmark_3_ring" type="cylinder" size="0.062 0.025" pos="0 0 0.34" rgba="0.95 0.95 0.98 1" />
+        </body>
+
+        <!-- 4: Corner_Post_BL at (-0.80, 0.55) -->
+        <body name="lm_4_Corner_Post_BL" pos="-0.80 0.55 0">
+            <geom name="landmark_4_post" type="box" size="0.05 0.05 0.16" pos="0 0 0.16" rgba="0.98 0.55 0.18 1" />
+            <geom name="landmark_4_cap" type="cylinder" size="0.055 0.03" pos="0 0 0.34" rgba="0.15 0.20 0.30 1" />
+        </body>
+
+        <!-- 5: Corner_Post_BR at (-0.80, -0.55) -->
+        <body name="lm_5_Corner_Post_BR" pos="-0.80 -0.55 0">
+            <geom name="landmark_5_post" type="box" size="0.05 0.05 0.16" pos="0 0 0.16" rgba="0.95 0.30 0.35 1" />
+            <geom name="landmark_5_cap" type="cylinder" size="0.055 0.03" pos="0 0 0.34" rgba="0.15 0.20 0.30 1" />
+        </body>
+
+        <!-- 6: Soccer_Goal_Center at (1.45, 0.00) -->
+        <body name="lm_6_Soccer_Goal_Center" pos="1.45 0.00 0">
+            <geom name="landmark_6_left" type="cylinder" size="0.03 0.18" pos="0 0.22 0.18" rgba="0.98 0.80 0.15 1" />
+            <geom name="landmark_6_right" type="cylinder" size="0.03 0.18" pos="0 -0.22 0.18" rgba="0.98 0.80 0.15 1" />
+            <geom name="landmark_6_bar" type="box" size="0.03 0.25 0.025" pos="0 0 0.36" rgba="0.98 0.80 0.15 1" />
+        </body>
+
+        <!-- 7: Rear_Beacon at (-1.30, 0.00) -->
+        <body name="lm_7_Rear_Beacon" pos="-1.30 0.00 0">
+            <geom name="landmark_7_post" type="cylinder" size="0.05 0.17" pos="0 0 0.17" rgba="0.92 0.28 0.65 1" />
+            <geom name="landmark_7_cap" type="sphere" size="0.065" pos="0 0 0.37" rgba="0.98 0.85 0.25 1" />
+        </body>
     </worldbody>
     <keyframe>
         <!-- STAND: hip_pitch / ankle ±22°. Trunk z puts the soles 1 mm above the floor. -->
