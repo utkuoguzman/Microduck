@@ -419,7 +419,7 @@ class MuJoCoXgoDuckBridge:
     or ESP32 can receive the 240-byte DQS1 state packets and send 80-byte DQC1 command packets!
     """
 
-    def __init__(self, hil_udp_port: int = 9528):
+    def __init__(self, hil_udp_port: int = 9528, esp32_serial_port: Optional[str] = None, esp32_baud: int = 921600):
         self.model, self.data, self.bam = build_xgoduck_mujoco_model()
         self.lock = threading.Lock()
         self.callbacks: Dict[str, Callable[[bytes], None]] = {}
@@ -451,6 +451,17 @@ class MuJoCoXgoDuckBridge:
         self.external_hil_active = False
         self.last_hil_rx = 0.0
 
+        # Optional USB Serial HIL Link to ESP32 Bridge (for 3-Node PC <-> ESP32 <-> Pi Zero W HIL)
+        self.esp32_ser = None
+        self._ser_rx_buf = bytearray()
+        if esp32_serial_port:
+            try:
+                import serial  # type: ignore
+                self.esp32_ser = serial.Serial(esp32_serial_port, esp32_baud, timeout=0)
+                print(f"[HIL USB Serial] Connected to ESP32 on {esp32_serial_port} @ {esp32_baud} baud")
+            except Exception as exc:
+                print(f"[HIL USB Serial] Warning: could not open {esp32_serial_port}: {exc}")
+
     def now_us(self) -> int:
         return int(round(self.data.time * 1e6)) & 0xFFFFFFFF
 
@@ -467,6 +478,9 @@ class MuJoCoXgoDuckBridge:
                 reply = CAL_REPLY.pack(b"DQA1", seq, index, 1)
                 self.callbacks["duck_cal_reply"](reply)
         elif topic == "duck_servo":
+            if self.esp32_ser is not None:
+                self._send_framed_esp32(0x05, payload)
+                return True
             magic, op, target_id, new_id, kp, kd, pflags, pcur = struct.unpack("<4sBBBBBBH", payload)
             if "duck_servo_reply" in self.callbacks:
                 reply = SERVO_REPLY.pack(b"DQS3", op, target_id, 1, pflags, SERVO_CENTER_POS, SERVO_CENTER_POS, kp, kd)
@@ -513,9 +527,54 @@ class MuJoCoXgoDuckBridge:
             elif data == b"HELLO_HIL":
                 self.last_hil_rx = time.monotonic()
 
+    def _poll_esp32_serial(self) -> None:
+        if self.esp32_ser is None:
+            return
+        try:
+            waiting = self.esp32_ser.in_waiting
+            if waiting > 0:
+                self._ser_rx_buf.extend(self.esp32_ser.read(waiting))
+        except Exception:
+            return
+
+        while len(self._ser_rx_buf) >= 5:
+            if self._ser_rx_buf[0] != 0xA5 or self._ser_rx_buf[1] != 0x5A:
+                del self._ser_rx_buf[0]
+                continue
+            pkt_type = self._ser_rx_buf[2]
+            plen = self._ser_rx_buf[3]
+            total_len = 4 + plen + 1
+            if len(self._ser_rx_buf) < total_len:
+                break
+            frame = bytes(self._ser_rx_buf[:total_len])
+            del self._ser_rx_buf[:total_len]
+            crc = pkt_type ^ plen
+            payload = frame[4 : 4 + plen]
+            for b in payload:
+                crc ^= b
+            if crc == frame[-1]:
+                if pkt_type in (0x02, 0x10) and plen == COMMAND.size:
+                    self._handle_command_packet(payload, from_external_hil=True)
+                elif pkt_type == 0x07 and "duck_servo_reply" in self.callbacks:
+                    self.callbacks["duck_servo_reply"](payload)
+
+    def _send_framed_esp32(self, pkt_type: int, payload: bytes) -> None:
+        if self.esp32_ser is None:
+            return
+        plen = len(payload)
+        crc = pkt_type ^ plen
+        for b in payload:
+            crc ^= b
+        frame = bytes([0xA5, 0x5A, pkt_type, plen]) + payload + bytes([crc])
+        try:
+            self.esp32_ser.write(frame)
+        except Exception:
+            pass
+
     def step_100hz(self) -> bytes:
         """Advance MuJoCo by 10 ms (100 Hz) and emit a 240-byte DQS1 StatePacket."""
         self._poll_hil_udp()
+        self._poll_esp32_serial()
 
         with self.lock:
             enabled = self.enabled
@@ -610,6 +669,9 @@ class MuJoCoXgoDuckBridge:
                 self.hil_sock.sendto(pkt, self.hil_peer)
             except OSError:
                 pass
+
+        if self.esp32_ser is not None:
+            self._send_framed_esp32(0x01, pkt)
 
         return pkt
 
@@ -1680,8 +1742,13 @@ def run_whistle_verification(use_numpy: bool = True) -> None:
         bridge.hil_sock.close()
 
 
-def run_interactive_sim(use_numpy: bool = True, port: int = 9527, hil_port: int = 9528) -> None:
-    """Launch interactive MuJoCo 3D Viewer + Web UI (port 9527) + UDP HIL Server (port 9528)."""
+def run_interactive_sim(
+    use_numpy: bool = True,
+    port: int = 9527,
+    hil_port: int = 9528,
+    esp32_serial: Optional[str] = None,
+) -> None:
+    """Launch interactive MuJoCo 3D Viewer + Web UI (port 9527) + UDP/USB HIL Server."""
     import mujoco.viewer
 
     DualBackendPolicy.USE_NUMPY_BACKEND = use_numpy
@@ -1704,7 +1771,7 @@ def run_interactive_sim(use_numpy: bool = True, port: int = 9527, hil_port: int 
 
     xgo_controller_mod.time = _HighResClock
 
-    bridge = MuJoCoXgoDuckBridge(hil_udp_port=hil_port)
+    bridge = MuJoCoXgoDuckBridge(hil_udp_port=hil_port, esp32_serial_port=esp32_serial)
     ctrl = Controller(bridge)
     bridge.provide("duck_state", ctrl.receive)
     bridge.provide("duck_diagnostics", ctrl.receive_diagnostics)
@@ -1829,6 +1896,7 @@ def main() -> None:
     parser.add_argument("--onnx", action="store_true", help="Use onnxruntime instead of Pure-NumPy .npz backend")
     parser.add_argument("--web-port", type=int, default=9527, help="HTTP port for XGO-Duck Web UI")
     parser.add_argument("--hil-port", type=int, default=9528, help="UDP port for Raspberry Pi Zero W (1.1) HIL")
+    parser.add_argument("--esp32-serial", type=str, default=None, help="ESP32 USB COM port (e.g. COM3) for 3-Node PC<->ESP32<->Pi Zero W HIL")
     args = parser.parse_args()
 
     if args.list_zoo:
@@ -1842,7 +1910,12 @@ def main() -> None:
     elif args.hil_test:
         run_udp_hil_test()
     else:
-        run_interactive_sim(use_numpy=not args.onnx, port=args.web_port, hil_port=args.hil_port)
+        run_interactive_sim(
+            use_numpy=not args.onnx,
+            port=args.web_port,
+            hil_port=args.hil_port,
+            esp32_serial=args.esp32_serial,
+        )
 
 
 if __name__ == "__main__":

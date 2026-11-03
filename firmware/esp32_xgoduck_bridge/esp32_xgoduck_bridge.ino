@@ -29,16 +29,24 @@ static const uint32_t HOST_BAUD  = 921600;   // USB / UART0 to Raspberry Pi Zero
 static const uint32_t SERVO_BAUD = 1000000;  // 1 Mbps for Feetech 1910 (HD-1910M) bus
 
 #if defined(CONFIG_IDF_TARGET_ESP32S2)
-  // Wemos / LOLIN S2 Mini (ESP32-S2FN4R2): Native USB CDC + Serial1
+  // Wemos / LOLIN S2 Mini (ESP32-S2FN4R2): Native USB CDC (Serial) + UART0 (Serial0 for Pi) + UART1 (Serial1 for Servos)
   #define ServoSerial Serial1
+  #define HAS_DEDICATED_PI_UART 1
+  #define PiSerial Serial0
+  static const int PI_RX_PIN     = 44;       // UART0 RX (GPIO44) to Pi TXD (GPIO14)
+  static const int PI_TX_PIN     = 43;       // UART0 TX (GPIO43) to Pi RXD (GPIO15)
   static const int SERVO_RX_PIN  = 18;       // UART1 RX (GPIO18)
   static const int SERVO_TX_PIN  = 17;       // UART1 TX (GPIO17)
   static const int SERVO_DIR_PIN = 4;        // Optional TX-enable pin (-1 if using 2-resistor circuit)
   static const int I2C_SDA_PIN   = 8;        // S2 Mini default SDA (GPIO8 or GPIO33)
   static const int I2C_SCL_PIN   = 9;        // S2 Mini default SCL (GPIO9 or GPIO35)
 #elif defined(CONFIG_IDF_TARGET_ESP32C3) || defined(CONFIG_IDF_TARGET_ESP32H2)
-  // ESP32-C3 Pro Mini / SuperMini or ESP32-H2 Mini: Native USB Serial/JTAG + Serial1
+  // ESP32-C3 Pro Mini / SuperMini or ESP32-H2 Mini: Native USB Serial/JTAG (Serial) + UART0 (Serial0 for Pi) + UART1 (Serial1 for Servos)
   #define ServoSerial Serial1
+  #define HAS_DEDICATED_PI_UART 1
+  #define PiSerial Serial0
+  static const int PI_RX_PIN     = 20;       // UART0 RX (GPIO20) to Pi TXD (GPIO14)
+  static const int PI_TX_PIN     = 21;       // UART0 TX (GPIO21) to Pi RXD (GPIO15)
   static const int SERVO_RX_PIN  = 5;        // UART1 RX (GPIO5)
   static const int SERVO_TX_PIN  = 4;        // UART1 TX (GPIO4)
   static const int SERVO_DIR_PIN = -1;       // Use 2-resistor (1k + 10k) half-duplex network
@@ -46,7 +54,15 @@ static const uint32_t SERVO_BAUD = 1000000;  // 1 Mbps for Feetech 1910 (HD-1910
   static const int I2C_SCL_PIN   = 9;        // SCL (GPIO9)
 #else
   // Classic ESP32 DevKit V1 (30-Pin) & Wemos LOLIN32 Lite V1.0.0 (Rev1, 4MB)
+  // Has 3 Hardware UARTs:
+  //   - UART0 (Serial):  USB to PC (for MuJoCo HIL / Web UI / Flashing)
+  //   - UART1 (Serial1): Dedicated 921600-baud link to Raspberry Pi Zero W (RX1=GPIO25, TX1=GPIO26)
+  //   - UART2 (Serial2): 1 Mbps Feetech HD-1910-C001 Servo Bus (RX2=GPIO16, TX2=GPIO17)
   #define ServoSerial Serial2
+  #define HAS_DEDICATED_PI_UART 1
+  #define PiSerial Serial1
+  static const int PI_RX_PIN     = 25;       // Connect to Pi Zero W Pin 8  (GPIO14 / UART TXD)
+  static const int PI_TX_PIN     = 26;       // Connect to Pi Zero W Pin 10 (GPIO15 / UART RXD)
   static const int SERVO_RX_PIN  = 16;       // UART2 RX (GPIO16)
   static const int SERVO_TX_PIN  = 17;       // UART2 TX (GPIO17)
   static const int SERVO_DIR_PIN = 4;        // Optional TX-enable pin for 74LVC1G126 buffer
@@ -555,24 +571,40 @@ static void pollAndEmulateServos(float dt) {
 #endif
 }
 
-// ===================== HOST SERIAL FRAMING (PI ZERO W / PC) ========
+// ===================== DUAL-PORT HIL FRAMING (PC USB + PI ZERO W UART) ========
 // Frame format: [0xA5, 0x5A, pktType, payloadLen, ...payload..., xorChecksum]
-// pktType: 0x01 = StatePacket (240B), 0x02 = CommandPacket (80B),
-//          0x05 = ServoPacket (12B), 0x07 = ServoReplyPacket (14B)
-static uint8_t hostRxBuf[128];
-static uint8_t hostRxState = 0;
-static uint8_t hostRxType = 0;
-static uint8_t hostRxLen = 0;
-static uint8_t hostRxIdx = 0;
+// pktType: 0x01 = StatePacket (240B, DQS1), 0x02 = CommandPacket (80B, DQC1),
+//          0x05 = ServoPacket (12B, DQV2),  0x07 = ServoReplyPacket (14B, DQS3)
+//
+// Supports 3-Node Closed-Loop HIL:
+//   [PC MuJoCo Physics] <--USB (Serial)--> [ESP32 Bridge] <--UART1 (GPIO25/26)--> [Raspberry Pi Zero W]
+struct HostParser {
+  uint8_t buf[256];
+  uint8_t state = 0;
+  uint8_t type = 0;
+  uint8_t len = 0;
+  uint8_t idx = 0;
+};
 
-static void sendFramedPacket(uint8_t pktType, const void *payload, uint8_t len) {
+static HostParser pcParser;
+static HostParser piParser;
+static uint32_t lastPcSimStateUs = 0;
+
+static void sendFramedToStream(Stream &port, uint8_t pktType, const void *payload, uint8_t len) {
   uint8_t header[4] = {0xA5, 0x5A, pktType, len};
   uint8_t crc = pktType ^ len;
   const uint8_t *p = (const uint8_t *)payload;
   for (uint8_t i = 0; i < len; i++) crc ^= p[i];
-  Serial.write(header, 4);
-  Serial.write(p, len);
-  Serial.write(crc);
+  port.write(header, 4);
+  port.write(p, len);
+  port.write(crc);
+}
+
+static void sendFramedPacket(uint8_t pktType, const void *payload, uint8_t len) {
+  sendFramedToStream(Serial, pktType, payload, len);
+#if HAS_DEDICATED_PI_UART
+  sendFramedToStream(PiSerial, pktType, payload, len);
+#endif
 }
 
 static void handleServoPacket(const ServoPacket &pkt) {
@@ -632,53 +664,80 @@ static void handleServoPacket(const ServoPacket &pkt) {
   sendFramedPacket(0x07, &reply, sizeof(reply));
 }
 
-static void pollHostSerial() {
-  while (Serial.available()) {
-    uint8_t b = (uint8_t)Serial.read();
-    switch (hostRxState) {
-      case 0: if (b == 0xA5) hostRxState = 1; break;
-      case 1: hostRxState = (b == 0x5A) ? 2 : 0; break;
-      case 2: hostRxType = b; hostRxState = 3; break;
+static void applyCommandPacket(const CommandPacket &cmd, bool fromPi) {
+  if (memcmp(cmd.magic, "DQC1", 4) == 0 && cmd.mode <= HOLD) {
+    acceptedCmdSeq = cmd.seq;
+    lastCmdUs = micros();
+    if (cmd.mode == DISARM) torqueEnabled = false;
+    else if (cmd.mode == ARM || cmd.mode == POLICY || cmd.mode == HOLD) torqueEnabled = true;
+    for (uint8_t i = 0; i < NUM_MOTORS; i++) {
+      if (isfinite(cmd.target[i])) motors[i].desAngleDeg = cmd.target[i];
+    }
+    // In 3-node HIL mode: when Pi Zero W sends a DQC1 command over UART1,
+    // forward it over USB (Serial) so PC MuJoCo steps the 3D duck in real time!
+    if (fromPi) {
+      sendFramedToStream(Serial, 0x02, &cmd, sizeof(cmd));
+    }
+  } else {
+    invalidCmds++;
+  }
+}
+
+static void pollStream(Stream &port, HostParser &p, bool isPiPort) {
+  while (port.available()) {
+    uint8_t b = (uint8_t)port.read();
+    switch (p.state) {
+      case 0: if (b == 0xA5) p.state = 1; break;
+      case 1: p.state = (b == 0x5A) ? 2 : 0; break;
+      case 2: p.type = b; p.state = 3; break;
       case 3:
-        hostRxLen = b;
-        if ((hostRxLen == sizeof(CommandPacket) && hostRxType == 0x02) ||
-            (hostRxLen == sizeof(ServoPacket) && hostRxType == 0x05)) {
-          hostRxIdx = 0;
-          hostRxState = 4;
+        p.len = b;
+        if ((p.len == sizeof(CommandPacket) && (p.type == 0x02 || p.type == 0x10)) ||
+            (p.len == sizeof(ServoPacket) && p.type == 0x05) ||
+            (!isPiPort && p.len == sizeof(StatePacket) && p.type == 0x01)) {
+          p.idx = 0;
+          p.state = 4;
         } else {
-          hostRxState = 0;
+          p.state = 0;
         }
         break;
       case 4:
-        hostRxBuf[hostRxIdx++] = b;
-        if (hostRxIdx == hostRxLen) hostRxState = 5;
+        p.buf[p.idx++] = b;
+        if (p.idx == p.len) p.state = 5;
         break;
       case 5: {
-        hostRxState = 0;
-        uint8_t crc = hostRxType ^ hostRxLen;
-        for (uint8_t i = 0; i < hostRxLen; i++) crc ^= hostRxBuf[i];
+        p.state = 0;
+        uint8_t crc = p.type ^ p.len;
+        for (uint8_t i = 0; i < p.len; i++) crc ^= p.buf[i];
         if (crc == b) {
-          if (hostRxType == 0x02 && hostRxLen == sizeof(CommandPacket)) {
+          if ((p.type == 0x02 || p.type == 0x10) && p.len == sizeof(CommandPacket)) {
             CommandPacket cmd;
-            memcpy(&cmd, hostRxBuf, sizeof(cmd));
-            if (memcmp(cmd.magic, "DQC1", 4) == 0 && cmd.mode <= HOLD) {
-              acceptedCmdSeq = cmd.seq;
-              lastCmdUs = micros();
-              if (cmd.mode == DISARM) torqueEnabled = false;
-              else if (cmd.mode == ARM || cmd.mode == POLICY || cmd.mode == HOLD) torqueEnabled = true;
-              for (uint8_t i = 0; i < NUM_MOTORS; i++) {
-                if (isfinite(cmd.target[i])) motors[i].desAngleDeg = cmd.target[i];
-              }
-            } else {
-              invalidCmds++;
-            }
-          } else if (hostRxType == 0x05 && hostRxLen == sizeof(ServoPacket)) {
+            memcpy(&cmd, p.buf, sizeof(cmd));
+            applyCommandPacket(cmd, isPiPort);
+          } else if (p.type == 0x05 && p.len == sizeof(ServoPacket)) {
             ServoPacket spkt;
-            memcpy(&spkt, hostRxBuf, sizeof(spkt));
+            memcpy(&spkt, p.buf, sizeof(spkt));
             if (memcmp(spkt.magic, "DQV2", 4) == 0) {
               handleServoPacket(spkt);
             } else {
               invalidCmds++;
+            }
+          } else if (!isPiPort && p.type == 0x01 && p.len == sizeof(StatePacket)) {
+            // PC MuJoCo injected a 240-byte DQS1 physics state over USB:
+            // Forward it immediately over UART1 (PiSerial) to the Raspberry Pi Zero W!
+            StatePacket simSt;
+            memcpy(&simSt, p.buf, sizeof(simSt));
+            if (memcmp(simSt.magic, "DQS1", 4) == 0) {
+              lastPcSimStateUs = micros();
+              memcpy(imuAccRaw, simSt.acc, sizeof(imuAccRaw));
+              memcpy(imuGyroRaw, simSt.gyro, sizeof(imuGyroRaw));
+              for (uint8_t i = 0; i < NUM_MOTORS; i++) {
+                motors[i].fbAngleDeg = simSt.angle[i];
+                motors[i].fbVelDeg = simSt.velocity[i];
+              }
+#if HAS_DEDICATED_PI_UART
+              sendFramedToStream(PiSerial, 0x01, &simSt, sizeof(simSt));
+#endif
             }
           }
         } else {
@@ -690,12 +749,22 @@ static void pollHostSerial() {
   }
 }
 
+static void pollHostSerial() {
+  pollStream(Serial, pcParser, false);
+#if HAS_DEDICATED_PI_UART
+  pollStream(PiSerial, piParser, true);
+#endif
+}
+
 void setup() {
   if (SERVO_DIR_PIN >= 0) {
     pinMode(SERVO_DIR_PIN, OUTPUT);
     digitalWrite(SERVO_DIR_PIN, LOW);
   }
   Serial.begin(HOST_BAUD);
+#if HAS_DEDICATED_PI_UART
+  PiSerial.begin(HOST_BAUD, SERIAL_8N1, PI_RX_PIN, PI_TX_PIN);
+#endif
   ServoSerial.begin(SERVO_BAUD, SERIAL_8N1, SERVO_RX_PIN, SERVO_TX_PIN);
 
   // Default standing angles (degrees)
@@ -730,6 +799,21 @@ void loop() {
   if (periodUs > TICK_US * 2) loopOverruns++;
   lastTickUs = nowUs;
 
+  const bool pcMuJoCoActive = (lastPcSimStateUs != 0) &&
+                              ((uint32_t)(nowUs - lastPcSimStateUs) < 250000u);
+
+  if (pcMuJoCoActive) {
+    // 3-Node HIL Mode: PC MuJoCo provides physics DQS1 state over USB (already forwarded to PiSerial).
+    // Still drive any physical servos connected to ServoSerial!
+    if (torqueEnabled) {
+      syncWriteGoals();
+    } else {
+      scsWriteByte(0xFE, ADDR_TORQUE, 0);
+    }
+    return;
+  }
+
+  // Standalone / Real Robot Mode:
   // 1. Update IMU
   pollImuSensor();
 
