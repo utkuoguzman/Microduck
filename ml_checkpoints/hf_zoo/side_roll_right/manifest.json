@@ -1,0 +1,37 @@
+{
+  "schema_version": 2,
+  "model_api": 1,
+  "obs_len": 61,
+  "action_len": 14,
+  "robot": {
+    "model": "microduck",
+    "hw_rev": 1,
+    "servos": "xl330",
+    "control_hz": 50
+  },
+  "name": "side-roll-right",
+  "kind": "episodic",
+  "entry_pose": "standing",
+  "description": "Lateral roll (cartwheel) over the shoulder, RIGHT. Lands back in the start posture (stand or sit). Two-button family: this repo feeds [0,1,0].",
+  "command": {
+    "encoding": "constant",
+    "idle": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "twist": "twist = [0, roll_btn, 0]; roll_btn in {-1,+1} picks the shoulder; this repo feeds +1 = RIGHT roll. Start standing OR seated - the policy returns to its start posture.",
+    "head": "unused (zeros)",
+    "body": "unused (zeros)"
+  },
+  "duration_s": 2.0,
+  "chain": false,
+  "training": {
+    "repo": "guang384/microduck_rl",
+    "commit": "f2453da7f",
+    "branch": "side-roll",
+    "dirty": true,
+    "task_id": "Mjlab-SideRoll-Flat-MicroDuck",
+    "checkpoint": 7398
+  }
+}

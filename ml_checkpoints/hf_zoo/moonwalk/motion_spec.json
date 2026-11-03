@@ -1,0 +1,76 @@
+{
+  "schema_version": "0.1",
+  "identity": {
+    "name": "moonwalk-backward",
+    "display_name": "Moonwalk Backward",
+    "description": "Smooth backward gliding gait with alternating feet, upright torso, minimal vertical motion"
+  },
+  "start_state": "standing",
+  "end_state": "standing",
+  "targets": [
+    {
+      "type": "velocity",
+      "forward": -0.15,
+      "lateral": 0.0,
+      "yaw": 0.0
+    },
+    {
+      "type": "body_height",
+      "relative": 0.0
+    },
+    {
+      "type": "body_orientation",
+      "pitch_deg": 0.0,
+      "roll_deg": 0.0,
+      "yaw_deg": null,
+      "tolerance_deg": 5.0
+    },
+    {
+      "type": "pose",
+      "name": "standing"
+    }
+  ],
+  "constraints": [
+    {
+      "type": "feet_contact",
+      "value": "at_least_one"
+    },
+    {
+      "type": "foot_slip",
+      "maximum": "medium"
+    },
+    {
+      "type": "ground_contact",
+      "allowed_parts": [
+        "feet"
+      ]
+    },
+    {
+      "type": "symmetry",
+      "required": true
+    }
+  ],
+  "timing": {
+    "style": "slewed",
+    "expected_duration_s": 3.0,
+    "hold_s": 0.5
+  },
+  "safety": {
+    "allow_fall": false,
+    "allow_head_contact": false,
+    "allow_body_contact": false,
+    "aggressiveness": "gentle"
+  },
+  "training": {
+    "difficulty": "medium",
+    "terrain": "flat",
+    "backlash": true,
+    "budget": "medium"
+  },
+  "generation": {
+    "mode": "guided",
+    "allow_custom_mdp": false
+  },
+  "symmetric": true,
+  "repeatable": true
+}

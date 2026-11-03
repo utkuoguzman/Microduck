@@ -1,0 +1,37 @@
+{
+  "schema_version": 2,
+  "model_api": 1,
+  "obs_len": 61,
+  "action_len": 14,
+  "robot": {
+    "model": "microduck",
+    "hw_rev": 1,
+    "servos": "xl330",
+    "control_hz": 50
+  },
+  "name": "side-roll-left",
+  "kind": "episodic",
+  "entry_pose": "standing",
+  "description": "Lateral roll, LEFT shoulder. Same policy as side-roll-right; the daemon feeds idle [0,-1,0] so the two-button policy rolls left. Lands back in the start posture.",
+  "command": {
+    "encoding": "constant",
+    "idle": [
+      0.0,
+      -1.0,
+      0.0
+    ],
+    "twist": "Same two-button policy as side-roll-right; this repo's daemon feeds twist [0,-1,0] so it rolls LEFT. Start standing OR seated - the policy returns to its start posture.",
+    "head": "unused (zeros)",
+    "body": "unused (zeros)"
+  },
+  "duration_s": 2.0,
+  "chain": false,
+  "training": {
+    "repo": "guang384/microduck_rl",
+    "commit": "f2453da7f",
+    "branch": "side-roll",
+    "dirty": true,
+    "task_id": "Mjlab-SideRoll-Flat-MicroDuck",
+    "checkpoint": 7398
+  }
+}

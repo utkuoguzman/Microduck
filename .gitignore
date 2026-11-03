@@ -1,0 +1,26 @@
+# Python virtual environments & caches
+.venv/
+venv/
+ENV/
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.uv_cache/
+
+# IDE & OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+*~
+
+# Large / redundant optional checkpoints (>50 MB)
+**/duck_20l.cact
+**/.cache/
+*.img
+*.img.xz
+

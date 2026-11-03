@@ -1,0 +1,436 @@
+{
+ "schema_version": 2,
+ "name": "play dead flat",
+ "kind": "episodic",
+ "slot": "stand",
+ "description": "a duck that plays dead: it drops to the floor and lies there completely still, flat on the ground, and stays down",
+ "obs_len": 61,
+ "action_len": 14,
+ "robot": {
+  "model": "microduck"
+ },
+ "training": {
+  "repo": "pollen-robotics/microduck_rl"
+ },
+ "duration_s": 6.0,
+ "judge_score": 0.966,
+ "vlm": {
+  "verdict": "unsure",
+  "note": "spawned already down",
+  "what_i_see": "The robot starts the clip already collapsed flat on the floor and stays completely motionless the entire time. It never begins from a standing position or performs the action of dropping down.",
+  "on_take": true
+ },
+ "score": 0.75,
+ "battery": null,
+ "academy": {
+  "prompt": "a duck that plays dead: it drops to the floor and lies there completely still, flat on the ground, and stays down",
+  "objective": "a duck that plays dead: it drops to the floor and lies there completely still, flat on the ground, and stays down",
+  "family": "standup",
+  "tier": null,
+  "mode": "train",
+  "kind": "trick",
+  "intents": [
+   "gesture",
+   "hold_pose"
+  ],
+  "orient": null,
+  "rhythm": null,
+  "head_pose": null,
+  "waivers": [],
+  "judge": {
+   "score": 0.966,
+   "pass": true,
+   "numbers": {
+    "height_ratio": 0.335,
+    "height_m": 0.0385,
+    "speed_mps": 0.0,
+    "displacement_mps": 0.0,
+    "pitch_deg": 1.6,
+    "max_tilt_deg": 8.3,
+    "yaw_rate_rps": 0.0,
+    "head_yaw_ptp_rad": 0.005,
+    "knee_left_rad": -0.022,
+    "contact_fraction": [
+     1.0,
+     1.0
+    ],
+    "travel_m": 0.0,
+    "heading_drift_rad": 0.001,
+    "foot_lifts": [
+     0,
+     0
+    ],
+    "foot_lift_alternations_10s": 0.0,
+    "head_pitch_rad": 0.963,
+    "head_pitch_hz": 0.0,
+    "head_yaw_hz": 0.0,
+    "pose_departure_rad": 0.464,
+    "fell": false,
+    "duration_s": 7.0,
+    "label": "zero_cmd_seed0",
+    "head_contact_fraction": 0.943,
+    "energy_w": 0.001,
+    "mouth_min_z_m": 0.014,
+    "feet_grounded_fraction": 0.931,
+    "height_ratio_last_s": 0.336,
+    "n_rollouts": 3
+   },
+   "criteria": [
+    {
+     "name": "lies_flat",
+     "value": 0.0386,
+     "op": "<=",
+     "target": 0.055,
+     "ok": true,
+     "credit": 1.0,
+     "weight": 1.2,
+     "required": true
+    },
+    {
+     "name": "stays_down",
+     "value": 1.0,
+     "op": ">=",
+     "target": 0.85,
+     "ok": true,
+     "credit": 1.0,
+     "weight": 1.0,
+     "required": true
+    },
+    {
+     "name": "legs_unfolded",
+     "value": 0.0162,
+     "op": "<=",
+     "target": 0.8,
+     "ok": true,
+     "credit": 1.0,
+     "weight": 1.0,
+     "required": true
+    },
+    {
+     "name": "still_body",
+     "value": 0.0,
+     "op": "<=",
+     "target": 0.12,
+     "ok": true,
+     "credit": 1.0,
+     "weight": 1.0,
+     "required": true
+    },
+    {
+     "name": "still_joints",
+     "value": 0.0008,
+     "op": "<=",
+     "target": 1.0,
+     "ok": true,
+     "credit": 1.0,
+     "weight": 0.8,
+     "required": true
+    },
+    {
+     "name": "no_spin",
+     "value": 0.0001,
+     "op": "<=",
+     "target": 0.15,
+     "ok": true,
+     "credit": 1.0,
+     "weight": 0.6,
+     "required": true
+    },
+    {
+     "name": "belly_down",
+     "value": -0.9996,
+     "op": "<=",
+     "target": -0.5,
+     "ok": true,
+     "credit": 1.0,
+     "weight": 0.6,
+     "required": true
+    },
+    {
+     "name": "head_low",
+     "value": 0.0399,
+     "op": "<=",
+     "target": 0.14,
+     "ok": true,
+     "credit": 1.0,
+     "weight": 0.6,
+     "required": true
+    },
+    {
+     "name": "beak_on_floor",
+     "value": 0.014,
+     "op": "<=",
+     "target": 0.1,
+     "ok": true,
+     "credit": 1.0,
+     "weight": 0.7,
+     "required": false
+    },
+    {
+     "name": "started_up",
+     "value": 0.0384,
+     "op": ">=",
+     "target": 0.1,
+     "ok": false,
+     "credit": 0.384,
+     "weight": 0.5,
+     "required": false
+    },
+    {
+     "name": "down_at_end",
+     "value": 1.0,
+     "op": ">=",
+     "target": 1.0,
+     "ok": true,
+     "credit": 1.0,
+     "weight": 1.0,
+     "required": true
+    }
+   ],
+   "command_area": null
+  },
+  "lineage": [
+   "tfrere/microduck-run-a-duck-that-plays-dead-it-dr"
+  ],
+  "rounds": [
+   {
+    "round": "1",
+    "judge_score": 0.976,
+    "pass": true,
+    "vlm": {
+     "verdict": "fail",
+     "note": "standing bow instead of drop",
+     "what_i_see": "The robot remains standing upright on both feet throughout the entire clip, only bending its neck down so its head hangs forward. It never drops its body to the floor or lies flat to play dead. It merely stands still with its head tilted down.",
+     "on_take": true
+    },
+    "score": 0.5,
+    "verdict": null,
+    "command_area": null,
+    "baseline": false,
+    "checkpoint_iter": 10500
+   },
+   {
+    "round": "2",
+    "judge_score": 0.976,
+    "pass": true,
+    "vlm": {
+     "verdict": "fail",
+     "note": "crouching instead of lying down",
+     "what_i_see": "The robot does not drop to the floor or lie dead. Instead, it bends its knees into a slight crouch, tilts its head downward toward its feet, and remains supported upright on its legs for the entire take.",
+     "on_take": true
+    },
+    "score": 0.5,
+    "verdict": null,
+    "command_area": null,
+    "baseline": false,
+    "checkpoint_iter": 10800
+   },
+   {
+    "round": "3",
+    "judge_score": 0.966,
+    "pass": true,
+    "vlm": {
+     "verdict": "unsure",
+     "note": "spawned already down",
+     "what_i_see": "The robot starts the clip already collapsed flat on the floor and stays completely motionless the entire time. It never begins from a standing position or performs the action of dropping down.",
+     "on_take": true
+    },
+    "score": 0.75,
+    "verdict": null,
+    "command_area": null,
+    "baseline": false,
+    "checkpoint_iter": null
+   }
+  ],
+  "remix_from": null,
+  "session": "a-duck-that-plays-dead-it-dr",
+  "run_repo": "tfrere/microduck-run-a-duck-that-plays-dead-it-dr",
+  "shipped_round": "3",
+  "checkpoint_iter": null,
+  "author": "tfrere",
+  "upstream_sha": "cb70b79",
+  "shipped_at": 1790254271.7792492,
+  "agent": {
+   "version": "2026.09.22c",
+   "pipeline": "pilot",
+   "model": "deepseek/deepseek-v4.1-flash"
+  }
+ },
+ "video": "video.mp4",
+ "poster": "poster.jpg",
+ "checkpoints": [
+  {
+   "round": "1",
+   "iter": 10000,
+   "path": "checkpoints/r1-10000.traj",
+   "judge_score": 0.546,
+   "vlm": null,
+   "score": 0.546
+  },
+  {
+   "round": "1",
+   "iter": 10200,
+   "path": "checkpoints/r1-10200.traj",
+   "judge_score": 0.576,
+   "vlm": null,
+   "score": 0.576
+  },
+  {
+   "round": "1",
+   "iter": 10400,
+   "path": "checkpoints/r1-10400.traj",
+   "judge_score": 0.971,
+   "vlm": null,
+   "score": 0.971
+  },
+  {
+   "round": "1",
+   "iter": 10600,
+   "path": "checkpoints/r1-10600.traj",
+   "judge_score": 0.973,
+   "vlm": null,
+   "score": 0.973
+  },
+  {
+   "round": "1",
+   "iter": 10800,
+   "path": "checkpoints/r1-10800.traj",
+   "judge_score": 0.97,
+   "vlm": null,
+   "score": 0.97
+  },
+  {
+   "round": "1",
+   "iter": 11000,
+   "path": "checkpoints/r1-11000.traj",
+   "judge_score": 0.97,
+   "vlm": null,
+   "score": 0.97
+  },
+  {
+   "round": "1",
+   "iter": 11100,
+   "path": "checkpoints/r1-11100.traj",
+   "judge_score": 0.969,
+   "vlm": null,
+   "score": 0.969
+  },
+  {
+   "round": "2",
+   "iter": 10500,
+   "path": "checkpoints/r2-10500.traj",
+   "judge_score": 0.97,
+   "vlm": null,
+   "score": 0.97
+  },
+  {
+   "round": "2",
+   "iter": 10700,
+   "path": "checkpoints/r2-10700.traj",
+   "judge_score": 0.973,
+   "vlm": null,
+   "score": 0.973
+  },
+  {
+   "round": "2",
+   "iter": 10900,
+   "path": "checkpoints/r2-10900.traj",
+   "judge_score": 0.976,
+   "vlm": null,
+   "score": 0.976
+  },
+  {
+   "round": "2",
+   "iter": 11100,
+   "path": "checkpoints/r2-11100.traj",
+   "judge_score": 0.974,
+   "vlm": null,
+   "score": 0.974
+  },
+  {
+   "round": "2",
+   "iter": 11300,
+   "path": "checkpoints/r2-11300.traj",
+   "judge_score": 0.974,
+   "vlm": null,
+   "score": 0.974
+  },
+  {
+   "round": "2",
+   "iter": 11500,
+   "path": "checkpoints/r2-11500.traj",
+   "judge_score": 0.973,
+   "vlm": null,
+   "score": 0.973
+  },
+  {
+   "round": "2",
+   "iter": 11600,
+   "path": "checkpoints/r2-11600.traj",
+   "judge_score": 0.972,
+   "vlm": null,
+   "score": 0.972
+  },
+  {
+   "round": "3",
+   "iter": 10800,
+   "path": "checkpoints/r3-10800.traj",
+   "judge_score": 0.861,
+   "vlm": null,
+   "score": 0.861
+  },
+  {
+   "round": "3",
+   "iter": 11000,
+   "path": "checkpoints/r3-11000.traj",
+   "judge_score": 0.864,
+   "vlm": null,
+   "score": 0.864
+  },
+  {
+   "round": "3",
+   "iter": 11200,
+   "path": "checkpoints/r3-11200.traj",
+   "judge_score": 0.866,
+   "vlm": null,
+   "score": 0.866
+  },
+  {
+   "round": "3",
+   "iter": 11400,
+   "path": "checkpoints/r3-11400.traj",
+   "judge_score": 0.868,
+   "vlm": null,
+   "score": 0.868
+  },
+  {
+   "round": "3",
+   "iter": 11600,
+   "path": "checkpoints/r3-11600.traj",
+   "judge_score": 0.966,
+   "vlm": null,
+   "score": 0.966
+  },
+  {
+   "round": "3",
+   "iter": 11800,
+   "path": "checkpoints/r3-11800.traj",
+   "judge_score": 0.966,
+   "vlm": null,
+   "score": 0.966
+  },
+  {
+   "round": "3",
+   "iter": 11900,
+   "path": "checkpoints/r3-11900.traj",
+   "judge_score": 0.966,
+   "vlm": {
+    "verdict": "unsure",
+    "note": "spawned already down",
+    "what_i_see": "The robot starts the clip already collapsed flat on the floor and stays completely motionless the entire time. It never begins from a standing position or performs the action of dropping down.",
+    "on_take": true
+   },
+   "score": 0.75
+  }
+ ]
+}

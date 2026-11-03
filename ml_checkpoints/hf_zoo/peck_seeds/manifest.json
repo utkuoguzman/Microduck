@@ -1,0 +1,376 @@
+{
+ "schema_version": 2,
+ "name": "hen pecking seeds",
+ "kind": "episodic",
+ "slot": "ground_pick",
+ "description": "a duck that pecks at seeds on the ground like a hen: it dips its beak down to the floor, comes back up, and pecks again and again",
+ "obs_len": 61,
+ "action_len": 14,
+ "robot": {
+  "model": "microduck"
+ },
+ "training": {
+  "repo": "pollen-robotics/microduck_rl"
+ },
+ "duration_s": 1.54,
+ "command": {
+  "encoding": "phase",
+  "slots": "twist.vx,twist.vy",
+  "period_s": 2.2,
+  "end_phase": 0.7,
+  "idle": [
+   0.809017,
+   -0.587785,
+   0.0
+  ],
+  "loop": true
+ },
+ "entry_pose": "standing",
+ "judge_score": 1.0,
+ "vlm": {
+  "verdict": "unsure",
+  "note": "insufficient repetitions",
+  "what_i_see": "The robot executes two deep pecking motions toward the floor, returning to an upright stance in between and after. However, it only pecks twice instead of three times, remaining stationary and upright for the final two and a half seconds.",
+  "on_take": true
+ },
+ "score": 0.75,
+ "battery": null,
+ "academy": {
+  "prompt": "a duck that pecks at seeds on the ground like a hen: it dips its beak down to the floor, comes back up, and pecks again and again",
+  "objective": "a duck that pecks at seeds on the ground like a hen: it dips its beak down to the floor, comes back up, and pecks again and again",
+  "family": "groundpick",
+  "tier": null,
+  "mode": "train",
+  "kind": "trick",
+  "intents": [
+   "gesture"
+  ],
+  "orient": null,
+  "rhythm": {
+   "band": [
+    0.3,
+    0.7
+   ],
+   "signal": "head_pitch"
+  },
+  "head_pose": null,
+  "waivers": [],
+  "judge": {
+   "score": 1.0,
+   "pass": true,
+   "numbers": {
+    "height_ratio": 0.889,
+    "height_m": 0.1022,
+    "speed_mps": -0.001,
+    "displacement_mps": 0.001,
+    "pitch_deg": 3.5,
+    "max_tilt_deg": 13.2,
+    "yaw_rate_rps": -0.014,
+    "head_yaw_ptp_rad": 0.045,
+    "knee_left_rad": 0.465,
+    "contact_fraction": [
+     1.0,
+     1.0
+    ],
+    "travel_m": 0.004,
+    "heading_drift_rad": -0.09,
+    "foot_lifts": [
+     0,
+     0
+    ],
+    "foot_lift_alternations_10s": 0.0,
+    "head_pitch_rad": 0.342,
+    "head_pitch_hz": 0.0,
+    "head_yaw_hz": 0.91,
+    "pose_departure_rad": 0.218,
+    "fell": false,
+    "duration_s": 8.6,
+    "label": "phase_seed0",
+    "head_contact_fraction": 0.016,
+    "energy_w": 0.778,
+    "mouth_min_z_m": 0.0224,
+    "feet_grounded_fraction": 0.998,
+    "height_ratio_last_s": 1.002
+   },
+   "criteria": [
+    {
+     "name": "beak_at_floor",
+     "value": 0.0224,
+     "op": "<=",
+     "target": 0.03,
+     "ok": true,
+     "credit": 1.0,
+     "weight": 2.0,
+     "required": true
+    },
+    {
+     "name": "three_separate_dips",
+     "value": 3.0,
+     "op": ">=",
+     "target": 3.0,
+     "ok": true,
+     "credit": 1.0,
+     "weight": 2.0,
+     "required": true
+    },
+    {
+     "name": "no_head_contact",
+     "value": 0.0163,
+     "op": "<=",
+     "target": 0.02,
+     "ok": true,
+     "credit": 1.0,
+     "weight": 1.0,
+     "required": true
+    },
+    {
+     "name": "no_body_contact",
+     "value": 0.0,
+     "op": "<=",
+     "target": 0.02,
+     "ok": true,
+     "credit": 1.0,
+     "weight": 1.0,
+     "required": true
+    },
+    {
+     "name": "stand_height_at_end",
+     "value": 1.0024,
+     "op": ">=",
+     "target": 0.85,
+     "ok": true,
+     "credit": 1.0,
+     "weight": 1.0,
+     "required": true
+    },
+    {
+     "name": "upright_at_end",
+     "value": 3.5279,
+     "op": "<=",
+     "target": 20.0,
+     "ok": true,
+     "credit": 1.0,
+     "weight": 1.0,
+     "required": true
+    },
+    {
+     "name": "beak_up_at_end",
+     "value": 0.2146,
+     "op": ">=",
+     "target": 0.15,
+     "ok": true,
+     "credit": 1.0,
+     "weight": 1.0,
+     "required": true
+    },
+    {
+     "name": "no_fall (max tilt deg)",
+     "value": 13.2448,
+     "op": "<=",
+     "target": 60.0,
+     "ok": true,
+     "credit": 1.0,
+     "weight": 2.0,
+     "required": true
+    },
+    {
+     "name": "no_fall (fell)",
+     "value": 0.0,
+     "op": "<=",
+     "target": 0.0,
+     "ok": true,
+     "credit": 1.0,
+     "weight": 2.0,
+     "required": true
+    },
+    {
+     "name": "no_head_contact (fraction)",
+     "value": 0.0163,
+     "op": "<=",
+     "target": 0.02,
+     "ok": true,
+     "credit": 1.0,
+     "weight": 2.0,
+     "required": true
+    },
+    {
+     "name": "stands_up_at_end",
+     "value": 1.0,
+     "op": ">=",
+     "target": 1.0,
+     "ok": true,
+     "credit": 1.0,
+     "weight": 1.0,
+     "required": true
+    }
+   ],
+   "command_area": null
+  },
+  "lineage": [
+   "tfrere/microduck-run-a-duck-that-pecks-at-seeds-o-3"
+  ],
+  "rounds": [
+   {
+    "round": "1",
+    "judge_score": 0.965,
+    "pass": false,
+    "vlm": {
+     "verdict": "unsure",
+     "note": "insufficient repetitions",
+     "what_i_see": "The duck robot bows deeply twice, bringing its head down toward the ground and returning toward an upright posture, before standing still for the final third of the take. Although it lowers its head, the beak does not reach all the way down to the floor, and it only performs two dips instead of three.",
+     "on_take": true
+    },
+    "score": 0.75,
+    "verdict": null,
+    "command_area": null,
+    "baseline": false,
+    "checkpoint_iter": 7000
+   },
+   {
+    "round": "2",
+    "judge_score": 1.0,
+    "pass": true,
+    "vlm": {
+     "verdict": "unsure",
+     "note": "insufficient repetitions",
+     "what_i_see": "The robot executes two deep pecking motions toward the floor, returning to an upright stance in between and after. However, it only pecks twice instead of three times, remaining stationary and upright for the final two and a half seconds.",
+     "on_take": true
+    },
+    "score": 0.75,
+    "verdict": null,
+    "command_area": null,
+    "baseline": false,
+    "checkpoint_iter": 7100
+   }
+  ],
+  "remix_from": null,
+  "session": "a-duck-that-pecks-at-seeds-o-3",
+  "run_repo": "tfrere/microduck-run-a-duck-that-pecks-at-seeds-o-3",
+  "shipped_round": "2",
+  "checkpoint_iter": 7100,
+  "author": "tfrere",
+  "upstream_sha": "cb70b79",
+  "shipped_at": 1790409029.1657097,
+  "agent": {
+   "version": "2026.09.22c",
+   "pipeline": "pilot",
+   "model": "deepseek/deepseek-v4.1-flash"
+  }
+ },
+ "video": "video.mp4",
+ "poster": "poster.jpg",
+ "checkpoints": [
+  {
+   "round": "1",
+   "iter": 6000,
+   "path": "checkpoints/r1-6000.traj",
+   "judge_score": 0.95,
+   "vlm": null,
+   "score": 0.95
+  },
+  {
+   "round": "1",
+   "iter": 6200,
+   "path": "checkpoints/r1-6200.traj",
+   "judge_score": 0.956,
+   "vlm": null,
+   "score": 0.956
+  },
+  {
+   "round": "1",
+   "iter": 6400,
+   "path": "checkpoints/r1-6400.traj",
+   "judge_score": 0.949,
+   "vlm": null,
+   "score": 0.949
+  },
+  {
+   "round": "1",
+   "iter": 6700,
+   "path": "checkpoints/r1-6700.traj",
+   "judge_score": 0.943,
+   "vlm": null,
+   "score": 0.943
+  },
+  {
+   "round": "1",
+   "iter": 6900,
+   "path": "checkpoints/r1-6900.traj",
+   "judge_score": 0.954,
+   "vlm": null,
+   "score": 0.954
+  },
+  {
+   "round": "1",
+   "iter": 7100,
+   "path": "checkpoints/r1-7100.traj",
+   "judge_score": 0.953,
+   "vlm": null,
+   "score": 0.953
+  },
+  {
+   "round": "1",
+   "iter": 7198,
+   "path": "checkpoints/r1-7198.traj",
+   "judge_score": 0.955,
+   "vlm": null,
+   "score": 0.955
+  },
+  {
+   "round": "2",
+   "iter": 7000,
+   "path": "checkpoints/r2-7000.traj",
+   "judge_score": 0.993,
+   "vlm": null,
+   "score": 0.993
+  },
+  {
+   "round": "2",
+   "iter": 7200,
+   "path": "checkpoints/r2-7200.traj",
+   "judge_score": 0.962,
+   "vlm": null,
+   "score": 0.962
+  },
+  {
+   "round": "2",
+   "iter": 7400,
+   "path": "checkpoints/r2-7400.traj",
+   "judge_score": 0.883,
+   "vlm": null,
+   "score": 0.883
+  },
+  {
+   "round": "2",
+   "iter": 7500,
+   "path": "checkpoints/r2-7500.traj",
+   "judge_score": 0.769,
+   "vlm": null,
+   "score": 0.769
+  },
+  {
+   "round": "2",
+   "iter": 7700,
+   "path": "checkpoints/r2-7700.traj",
+   "judge_score": 0.714,
+   "vlm": null,
+   "score": 0.714
+  },
+  {
+   "round": "2",
+   "iter": 7900,
+   "path": "checkpoints/r2-7900.traj",
+   "judge_score": 0.706,
+   "vlm": null,
+   "score": 0.706
+  },
+  {
+   "round": "2",
+   "iter": 7999,
+   "path": "checkpoints/r2-7999.traj",
+   "judge_score": 0.87,
+   "vlm": null,
+   "score": 0.87
+  }
+ ]
+}

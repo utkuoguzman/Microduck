@@ -1,0 +1,37 @@
+{
+  "schema_version": 2,
+  "model_api": 1,
+  "obs_len": 61,
+  "action_len": 14,
+  "robot": {
+    "model": "microduck",
+    "hw_rev": 1,
+    "servos": "xl330",
+    "control_hz": 50
+  },
+  "name": "hop-once",
+  "kind": "episodic",
+  "entry_pose": "standing",
+  "description": "One forward hop (~7 cm, 0.16 s air), then stand. Sim-only, hardware-unverified. Warm-started from ThomasBurgess2000/microduck-max-height-jump (Apache-2.0).",
+  "command": {
+    "encoding": "constant",
+    "idle": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "twist": "unused (zeros)",
+    "head": "unused (zeros)",
+    "body": "unused (zeros)"
+  },
+  "duration_s": 3.0,
+  "chain": false,
+  "training": {
+    "repo": "pollen-robotics/microduck_rl",
+    "commit": "8eda471cc",
+    "branch": "claude/confident-einstein-tpl4x7",
+    "dirty": false,
+    "task_id": "Mjlab-HopOnce-JumpWarm-Flat-MicroDuck",
+    "checkpoint": 850
+  }
+}

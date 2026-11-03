@@ -1,0 +1,59 @@
+{
+  "schema_version": 2,
+  "model_api": 1,
+  "obs_len": 61,
+  "action_len": 14,
+  "robot": {
+    "model": "microduck",
+    "hw_rev": 1,
+    "servos": "xl330",
+    "control_hz": 50,
+    "accessories": []
+  },
+  "name": "sprint-2m-reference",
+  "kind": "perpetual",
+  "entry_pose": "standing",
+  "description": "Pollen's reference for the Microduck Arena's 2 m Sprint: the sprint_2m challenge of microduck-challenges trained unchanged with its recipe (4096 envs, 3000 iterations, seed 1); checkpoint 1000, its fastest on the Arena.",
+  "command": {
+    "encoding": "constant",
+    "idle": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "twist": "[forward speed m/s, lateral speed m/s, yaw rate rad/s]; the Arena commands [vx, 0, 0]",
+    "head": "unused (zeros)",
+    "body": "unused (zeros)"
+  },
+  "duration_s": null,
+  "slot": "walk",
+  "training": {
+    "repo": "https://github.com/pollen-robotics/microduck-challenges.git",
+    "commit": "7a668f11c",
+    "branch": "heading-hold",
+    "dirty": false,
+    "command": [
+      "train",
+      "Mjlab-Sprint2m-MicroDuck",
+      "--env.scene.num-envs",
+      "4096",
+      "--agent.max-iterations",
+      "3000",
+      "--agent.seed",
+      "1",
+      "--agent.logger",
+      "tensorboard",
+      "--agent.run-name",
+      "reference"
+    ],
+    "seed": 1,
+    "base": "mjlab-microduck 0.1.0 @ 981a279c6",
+    "started": "2026-09-28T15:04:10Z",
+    "task_id": "Mjlab-Sprint2m-MicroDuck",
+    "checkpoint": 1000,
+    "source_file": "model_1000.pt"
+  },
+  "arena": {
+    "event": "sprint-2m"
+  }
+}

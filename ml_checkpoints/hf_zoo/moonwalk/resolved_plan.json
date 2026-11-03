@@ -1,0 +1,178 @@
+{
+  "recipe": "velocity",
+  "robot_model": "walk",
+  "task_id": "Mjlab-MotionLabMoonwalkBackward-Flat-MicroDuck",
+  "reward_profile": "upstream:velocity",
+  "curriculum_profile": "upstream_default",
+  "num_envs": 4096,
+  "max_iterations": 4000,
+  "backlash_variant": true,
+  "needs_custom_mdp": true,
+  "recipe_ranking": [
+    {
+      "recipe": "velocity",
+      "score": 0.78,
+      "reasons": [
+        "covers lateral_velocity, locomotion, turning",
+        "missing return_to_stand, standing_posture",
+        "start state compatible",
+        "end state compatible",
+        "LLM planner preferred recipe",
+        "supports flat terrain"
+      ]
+    },
+    {
+      "recipe": "velstand",
+      "score": 0.78,
+      "reasons": [
+        "covers lateral_velocity, locomotion, return_to_stand, turning",
+        "missing standing_posture",
+        "start state compatible",
+        "end state compatible",
+        "supports flat terrain"
+      ]
+    },
+    {
+      "recipe": "standup",
+      "score": 0.42,
+      "reasons": [
+        "covers return_to_stand, standing_posture",
+        "missing lateral_velocity, locomotion, turning",
+        "start state compatible",
+        "end state compatible",
+        "supports flat terrain"
+      ]
+    },
+    {
+      "recipe": "sitstand",
+      "score": 0.24,
+      "reasons": [
+        "covers return_to_stand",
+        "missing lateral_velocity, locomotion, standing_posture, turning",
+        "start state compatible",
+        "end state compatible",
+        "supports flat terrain"
+      ]
+    },
+    {
+      "recipe": "groundpick",
+      "score": 0.24,
+      "reasons": [
+        "covers return_to_stand",
+        "missing lateral_velocity, locomotion, standing_posture, turning",
+        "start state compatible",
+        "end state compatible",
+        "supports flat terrain"
+      ]
+    },
+    {
+      "recipe": "ballkick",
+      "score": 0.24,
+      "reasons": [
+        "covers return_to_stand",
+        "missing lateral_velocity, locomotion, standing_posture, turning",
+        "start state compatible",
+        "end state compatible",
+        "supports flat terrain"
+      ]
+    },
+    {
+      "recipe": "roulade",
+      "score": 0.24,
+      "reasons": [
+        "covers return_to_stand",
+        "missing lateral_velocity, locomotion, standing_posture, turning",
+        "start state compatible",
+        "end state compatible",
+        "supports flat terrain"
+      ]
+    },
+    {
+      "recipe": "roller_velocity",
+      "score": 0.24,
+      "reasons": [
+        "covers turning",
+        "missing lateral_velocity, locomotion, return_to_stand, standing_posture",
+        "start state compatible",
+        "end state compatible",
+        "supports flat terrain"
+      ]
+    },
+    {
+      "recipe": "roller_spin",
+      "score": 0.24,
+      "reasons": [
+        "covers turning",
+        "missing lateral_velocity, locomotion, return_to_stand, standing_posture",
+        "start state compatible",
+        "end state compatible",
+        "supports flat terrain"
+      ]
+    },
+    {
+      "recipe": "roller_standup",
+      "score": 0.18,
+      "reasons": [
+        "covers return_to_stand",
+        "missing lateral_velocity, locomotion, standing_posture, turning",
+        "end state compatible",
+        "supports flat terrain"
+      ]
+    },
+    {
+      "recipe": "roller_swizzle",
+      "score": 0.08,
+      "reasons": [
+        "missing lateral_velocity, locomotion, return_to_stand, standing_posture, turning",
+        "start state compatible",
+        "end state compatible",
+        "supports flat terrain"
+      ]
+    },
+    {
+      "recipe": "roller_crouch",
+      "score": 0.08,
+      "reasons": [
+        "missing lateral_velocity, locomotion, return_to_stand, standing_posture, turning",
+        "start state compatible",
+        "end state compatible",
+        "supports flat terrain"
+      ]
+    },
+    {
+      "recipe": "roller_slope",
+      "score": 0.04,
+      "reasons": [
+        "missing lateral_velocity, locomotion, return_to_stand, standing_posture, turning",
+        "start state compatible",
+        "end state compatible"
+      ]
+    }
+  ],
+  "catalog_version": "0.2",
+  "upstream_task": "Mjlab-Velocity-Flat-MicroDuck",
+  "recipe_capabilities": [
+    "locomotion",
+    "forward_velocity",
+    "lateral_velocity",
+    "turning",
+    "head_pose"
+  ],
+  "required_capabilities": [
+    "locomotion",
+    "lateral_velocity",
+    "turning",
+    "return_to_stand",
+    "standing_posture"
+  ],
+  "uncovered_capabilities": [
+    "return_to_stand",
+    "standing_posture"
+  ],
+  "novel_requirements": [
+    "backward velocity with alternating feet (moonwalk-style), zero forward/lateral net displacement, strictly symmetric gait, minimal vertical oscillation, upright torso pitch/roll control"
+  ],
+  "requires_adaptation": true,
+  "planner_preferred_recipe": "velocity",
+  "routing_mode": "capability_resolver"
+}

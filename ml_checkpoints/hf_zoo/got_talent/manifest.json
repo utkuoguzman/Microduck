@@ -1,0 +1,59 @@
+{
+  "schema_version": 2,
+  "model_api": 1,
+  "obs_len": 61,
+  "action_len": 14,
+  "robot": {
+    "model": "microduck",
+    "hw_rev": 1,
+    "servos": "xl330",
+    "control_hz": 50,
+    "accessories": []
+  },
+  "name": "got-a-talent-reference",
+  "kind": "perpetual",
+  "entry_pose": "standing",
+  "description": "Sits and stands on the sit flag, head on command; checkpoint 2000, the MicroDuck Got a Talent reference.",
+  "command": {
+    "encoding": "constant",
+    "idle": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "twist": "[sit flag: 1 sit, 0 stand; unused; unused]",
+    "head": "[neck_pitch, head_pitch, head_yaw, head_roll]: rad from the default pose",
+    "body": "unused (zeros)"
+  },
+  "duration_s": null,
+  "slot": "sitstand",
+  "training": {
+    "repo": "https://github.com/pollen-robotics/microduck-challenges.git",
+    "commit": "0f11bbdd9",
+    "branch": "swag-stage",
+    "dirty": false,
+    "command": [
+      "train",
+      "Mjlab-SwagContest-MicroDuck",
+      "--env.scene.num-envs",
+      "4096",
+      "--agent.max-iterations",
+      "3000",
+      "--agent.seed",
+      "1",
+      "--agent.logger",
+      "tensorboard",
+      "--agent.run-name",
+      "reference"
+    ],
+    "seed": 1,
+    "base": "mjlab-microduck 0.1.0 @ 981a279c6",
+    "started": "2026-09-29T13:22:42Z",
+    "task_id": "Mjlab-GotATalent-MicroDuck",
+    "checkpoint": 2000,
+    "source_file": "model_2000.pt"
+  },
+  "arena": {
+    "event": "got-a-talent"
+  }
+}

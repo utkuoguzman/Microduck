@@ -1,0 +1,73 @@
+{
+  "schema_version": 2,
+  "model_api": 1,
+  "name": "happy-hop",
+  "kind": "episodic",
+  "obs_len": 61,
+  "action_len": 14,
+  "action_scale": 1.0,
+  "entry_pose": "standing",
+  "duration_s": 3.0,
+  "status": "sim-only-hardware-candidate",
+  "description": "Short vertical two-foot hop: stabilize, crouch with hips and knees, extend, take off, absorb the landing, and return toward HOME.",
+  "command": {
+    "layout": "twist(3), head_pose(4), body_pose(6)",
+    "twist": [
+      "unused (0)",
+      "unused (0)",
+      "unused (0)"
+    ],
+    "head": "unused; zeros",
+    "body": "unused; zeros",
+    "idle": [
+      0,
+      0,
+      0
+    ],
+    "trigger": "external one-shot policy switch after a stable standing entry; the trigger is not encoded in the observation",
+    "local_rehearsal_binding": "J in the launching terminal of the experimental local scripts/infer_policy.py integration; repeatable after each completed cycle; not an official runtime binding"
+  },
+  "robot": {
+    "model": "microduck",
+    "hw_rev": 1,
+    "servos": "14x Dynamixel XL330",
+    "control_hz": 50,
+    "hardware_modifications_required": false
+  },
+  "training": {
+    "task_id": "Mjlab-HappyHop-WalkTransition-Clearance-Flat-Backlash-MicroDuck",
+    "algorithm": "PPO (rsl_rl)",
+    "repo": "pollen-robotics/microduck_rl",
+    "upstream_base": "pollen-robotics/microduck_rl@d424a0c899f6b33cbd3daeb279913134349c0b63",
+    "run": "2026-08-31_20-39-21_happy_hop_clearance_35mm_stage1",
+    "checkpoint_iteration": 1255,
+    "entry_state_source": "walking_backlash_model_5000.onnx after 1.0 s of exact-zero velocity command",
+    "environment": {
+      "backlash": true,
+      "bilateral_foot_clearance_target_m": 0.035,
+      "bilateral_foot_clearance_success_threshold_m": 0.03,
+      "current_limit_a": 1.75,
+      "action_filter": "none"
+    },
+    "export": "scripts/export.py; observation normalizer baked into policy.onnx"
+  },
+  "eval": {
+    "sim_proxy": "MuJoCo with the BAM XL330 actuator model, output-side backlash encoder view, current saturation, delays, and velocity-recipe randomization",
+    "visual_result": "complete crouch, two-foot hop, landing absorption, and stable recovery; retained for clean motion rather than maximum height",
+    "known_limits": "modest jump height; requires a stable standing entry; not trained to take off directly from an active walking stride; never tested on hardware"
+  },
+  "deployment": {
+    "observation_normalizer_baked": true,
+    "expected_action_filter": "none",
+    "runtime_lowpass_pass_through": {
+      "head_lowpass": 1.0,
+      "legs_lowpass": 1.0
+    }
+  },
+  "media": {
+    "preview": "media/preview.mp4",
+    "description": "One complete simulation cycle: stable stand, crouch, takeoff, landing absorption, and return toward HOME.",
+    "audio": false
+  },
+  "source_artifact_sha256": "abd6db1bca2f2a583508cfd9a6fd144a7cce65b302827b9b9a0c5227fc2acae9"
+}

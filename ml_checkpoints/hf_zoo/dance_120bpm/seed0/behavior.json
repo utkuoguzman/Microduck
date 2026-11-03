@@ -1,0 +1,14 @@
+{
+  "behavior": "dance",
+  "steps": 3000000,
+  "weights": {},
+  "symmetry_coef": 0.0,
+  "desired_kl": null,
+  "net_arch": "512,256,128",
+  "shared_trunk": false,
+  "n_epochs": 5,
+  "clip": "beat-dance",
+  "title": "Fixed-tempo dance pilot \u2014 seed 0",
+  "description": "First full 3M-step PPO pilot for the deterministic four-beat 120 BPM dance.",
+  "group": "rhythm-dance"
+}

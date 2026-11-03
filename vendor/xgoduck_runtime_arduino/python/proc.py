@@ -1,0 +1,69 @@
+# Adapted from Microduck deployment processing (Pollen Robotics).
+# Modified for QMI8658 body axes and independent MCU IMU timestamps.
+# Upstream portions: Apache-2.0; see THIRD_PARTY_NOTICES.md and LICENSES/.
+"""QMI body-axis adapter for the Raspberry Pi deployment's receive-side filter."""
+from __future__ import annotations
+import math
+import time
+from rl_core import State, ImuFilter, FEEDBACK_PERIOD, VEL_ALPHA, GYRO_ALPHA, GRAVITY_TAU
+
+class SignalFilter:
+    def __init__(self):
+        self.gyro_alpha = GYRO_ALPHA
+        self.vel_alpha = VEL_ALPHA
+        self.gravity_tau_s = GRAVITY_TAU
+        self.reset()
+
+    def reset(self):
+        self._imu = ImuFilter(self.gyro_alpha, self.vel_alpha, self.gravity_tau_s)
+        self._last_t = None
+        self._last_imu_t = None
+        self._last = None
+
+    def set_imu_filters(self, gyro_alpha=None, gravity_tau_s=None):
+        gyro = self.gyro_alpha if gyro_alpha is None else float(gyro_alpha)
+        tau = self.gravity_tau_s if gravity_tau_s is None else float(gravity_tau_s)
+        if not math.isfinite(gyro) or not 0 <= gyro <= 0.95:
+            raise ValueError('gyro alpha must be between 0 and 0.95')
+        if not math.isfinite(tau) or not 0.01 <= tau <= 2.0:
+            raise ValueError('gravity tau must be between 0.01 and 2 seconds')
+        self.gyro_alpha = self._imu.gyro_alpha = gyro
+        self.gravity_tau_s = self._imu.gravity_tau_s = tau
+        return {'gyro_alpha': gyro, 'gravity_tau_s': tau}
+
+    def update(self, acc_ms2, gyro_dps, angles_deg, vels_deg, *, timestamp=None,
+               imu_timestamp=None, imu_ok=True):
+        acc, gyro = list(acc_ms2), list(gyro_dps)
+        now = time.perf_counter() if timestamp is None else float(timestamp)
+        imu_now = now if imu_timestamp is None else float(imu_timestamp)
+        valid = imu_ok and all(math.isfinite(v) for v in (*acc, *gyro, *angles_deg, *vels_deg, now, imu_now))
+        if self._last_t is not None and now <= self._last_t:
+            valid = False
+        if self._last_imu_t is not None and imu_now < self._last_imu_t:
+            valid = False
+        if not valid:
+            self._last_t = None
+            self._last_imu_t = None
+            out = dict(self._last or dict(
+                grav=[0, 0, -1], gyro_rad=[0] * 3,
+                angles_deg=[0] * 15, vels_deg=[0] * 15, imu_fusion_ready=False))
+            out['imu_fusion_updated'] = False
+            return out
+        dt = FEEDBACK_PERIOD if self._last_t is None else now - self._last_t
+        if self._last_t is None:
+            self._imu = ImuFilter(self.gyro_alpha, self.vel_alpha, self.gravity_tau_s)
+        self._last_t = now
+        new_imu = self._last_imu_t is None or imu_now > self._last_imu_t
+        imu_dt = FEEDBACK_PERIOD if self._last_imu_t is None else imu_now-self._last_imu_t
+        if new_imu:
+            self._last_imu_t = imu_now
+        # QMI firmware already outputs policy body axes. Invert the ESP32 Python
+        # mapping [z,-x,-y] here so ImuFilter applies it exactly once overall.
+        st = State([-acc[1], -acc[2], acc[0]], [-gyro[1], -gyro[2], gyro[0]],
+                   list(angles_deg), list(vels_deg))
+        st = self._imu.update(st, dt, imu_dt=imu_dt, update_imu=new_imu)
+        out = dict(angles_deg=list(angles_deg), vels_deg=list(st.vels),
+                   grav=st.grav, gyro_rad=st.gyro_rad,
+                   imu_fusion_ready=True, imu_fusion_updated=new_imu)
+        self._last = out
+        return out

@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "name": "microduck-backflip",
+  "task": "Mjlab-Flip-MicroDuck",
+  "policy_file": "policy.onnx",
+  "checkpoint_file": "checkpoint.pt",
+  "stored_iteration": 12000,
+  "research_run": "f21",
+  "policy_sha256": "59dd61ea1e8566a3bad9f8b24dd18530664906c33964b1c05e6ed6e821e16a24",
+  "checkpoint_sha256": "f7e523c19de5cd5e2ced430f3d9bb46bef1ed69ad0003cb45955d56169929cdd",
+  "source": {
+    "repository": "Vottivott/microduck-playground",
+    "branch": "main",
+    "revision": "b6aed572587b52e41a452a9b2be517c95d2b3d96",
+    "public_base": "4289c236864ea7d8f9a72951667b31c4fcd4b935"
+  },
+  "profiles": {
+    "backflip": {
+      "task": "Flip",
+      "environment": {
+        "MICRODUCK_FLIP_DIR": "back",
+        "MICRODUCK_FLIP_H_MIN": "0.8",
+        "MICRODUCK_FLIP_H_MAX": "0.8",
+        "MICRODUCK_FLIP_MAT_VISUAL": "0",
+        "MICRODUCK_FLIP_HOP_FATAL": "0"
+      }
+    }
+  },
+  "status": "simulation-only-research",
+  "hardware_validated": false,
+  "robustness_claim": false,
+  "media": {
+    "preview": "media/preview.mp4",
+    "preview_sha256": "bfe4a0ff24290751bafe65ecb63d75a3acd02c7d4c05f09925c0f8c15e89a186",
+    "source_montage_sha256": "60626e213e5513b85ed6d7a84988040c782e83ebbae84e326529a7f25e7c782c",
+    "interval_s": [
+      7.42,
+      11.46
+    ],
+    "edited_research_montage": true,
+    "exact_checkpoint_seed_mapping_verified": false,
+    "center_crop": {
+      "width": 560,
+      "height": 720,
+      "x": 200,
+      "y": 0
+    },
+    "fps": 50,
+    "frames": 200,
+    "uncropped_excerpt_sha256": "e0b3e1e17f68151dff05dc019999c0053bf6820cad6e44b2e80e305d799a36bd",
+    "crop_note": "Removed the remaining 80-pixel bars on each side of the former 720x720 crop; no stretching or vertical crop."
+  },
+  "additional_policy_switching": false,
+  "onnx_export_path": "scripts/export.py",
+  "simulation_contact_capacity": 200,
+  "source_note": "Public two-policy split; original task physics and per-policy continuation settings unchanged from validated preparation. Pillar release excluded.",
+  "warning": "⚠️ Landings may break the robot. Simulation only; not yet validated on hardware.",
+  "training_continuation": {
+    "repository": "Vottivott/microduck-playground",
+    "branch": "main",
+    "revision": "b6aed572587b52e41a452a9b2be517c95d2b3d96",
+    "profile": "backflip",
+    "recipe": "training/resume.json",
+    "original_release_binaries_unchanged": true,
+    "guide": "TRAINING.md",
+    "validated_envs": 64,
+    "validated_additional_iterations": 5,
+    "exact_historical_replay": false
+  }
+}

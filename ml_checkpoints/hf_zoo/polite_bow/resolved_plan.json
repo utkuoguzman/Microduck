@@ -1,0 +1,56 @@
+{
+  "recipe": "standup",
+  "robot_model": "allcollisions",
+  "task_id": "Mjlab-PoliteBow-Flat-MicroDuck",
+  "reward_profile": "commanded_standing_posture",
+  "curriculum_profile": "slewed_pose",
+  "num_envs": 4096,
+  "max_iterations": 1000,
+  "backlash_variant": true,
+  "needs_custom_mdp": false,
+  "recipe_ranking": [
+    {
+      "recipe": "standup",
+      "score": 0.99,
+      "reasons": [
+        "standing body/head posture command with return to neutral",
+        "explicit pose target"
+      ]
+    },
+    {
+      "recipe": "sitstand",
+      "score": 0.2,
+      "reasons": [
+        "fallback similarity"
+      ]
+    },
+    {
+      "recipe": "groundpick",
+      "score": 0.18,
+      "reasons": [
+        "fallback similarity"
+      ]
+    },
+    {
+      "recipe": "velocity",
+      "score": 0.08,
+      "reasons": [
+        "fallback similarity"
+      ]
+    },
+    {
+      "recipe": "roulade",
+      "score": 0.06,
+      "reasons": [
+        "fallback similarity"
+      ]
+    },
+    {
+      "recipe": "ballkick",
+      "score": 0.02,
+      "reasons": [
+        "fallback similarity"
+      ]
+    }
+  ]
+}

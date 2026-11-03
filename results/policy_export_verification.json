@@ -1,0 +1,263 @@
+[
+  {
+    "name": "walk (walk.onnx)",
+    "npz": "walk.npz",
+    "in_dim": 51,
+    "out_dim": 14,
+    "size_kb": 702.7,
+    "max_diff": 7.62939453125e-05,
+    "pc_infer_ms": 0.1069
+  },
+  {
+    "name": "xgoduck_ballkick_left (xgoduck_ballkick_left.onnx)",
+    "npz": "xgoduck_ballkick_left.npz",
+    "in_dim": 61,
+    "out_dim": 14,
+    "size_kb": 720.1,
+    "max_diff": 4.76837158203125e-06,
+    "pc_infer_ms": 0.0751
+  },
+  {
+    "name": "xgoduck_ballkick_right (xgoduck_ballkick_right.onnx)",
+    "npz": "xgoduck_ballkick_right.npz",
+    "in_dim": 61,
+    "out_dim": 14,
+    "size_kb": 720.1,
+    "max_diff": 5.245208740234375e-06,
+    "pc_infer_ms": 0.1025
+  },
+  {
+    "name": "xgoduck_getup (xgoduck_getup.onnx)",
+    "npz": "xgoduck_getup.npz",
+    "in_dim": 61,
+    "out_dim": 14,
+    "size_kb": 719.5,
+    "max_diff": 3.0994415283203125e-06,
+    "pc_infer_ms": 0.0936
+  },
+  {
+    "name": "xgoduck_pick (xgoduck_pick.onnx)",
+    "npz": "xgoduck_pick.npz",
+    "in_dim": 61,
+    "out_dim": 14,
+    "size_kb": 720.7,
+    "max_diff": 9.5367431640625e-06,
+    "pc_infer_ms": 0.1098
+  },
+  {
+    "name": "xgoduck_roller (xgoduck_roller.onnx)",
+    "npz": "xgoduck_roller.npz",
+    "in_dim": 61,
+    "out_dim": 14,
+    "size_kb": 722.6,
+    "max_diff": 0.00018310546875,
+    "pc_infer_ms": 0.0814
+  },
+  {
+    "name": "xgoduck_roulade (xgoduck_roulade.onnx)",
+    "npz": "xgoduck_roulade.npz",
+    "in_dim": 61,
+    "out_dim": 14,
+    "size_kb": 720.9,
+    "max_diff": 3.814697265625e-06,
+    "pc_infer_ms": 0.0728
+  },
+  {
+    "name": "xgoduck_sitstand (xgoduck_sitstand.onnx)",
+    "npz": "xgoduck_sitstand.npz",
+    "in_dim": 61,
+    "out_dim": 14,
+    "size_kb": 719.5,
+    "max_diff": 2.1457672119140625e-06,
+    "pc_infer_ms": 0.1072
+  },
+  {
+    "name": "xgoduck_walk (xgoduck_walk.onnx)",
+    "npz": "xgoduck_walk.npz",
+    "in_dim": 61,
+    "out_dim": 14,
+    "size_kb": 721.6,
+    "max_diff": 3.56137752532959e-06,
+    "pc_infer_ms": 0.0736
+  },
+  {
+    "name": "zoo_backflip (policy.onnx)",
+    "npz": "zoo_backflip.npz",
+    "in_dim": 61,
+    "out_dim": 14,
+    "size_kb": 721.8,
+    "max_diff": 5.0067901611328125e-06,
+    "pc_infer_ms": 0.0814
+  },
+  {
+    "name": "zoo_dance_120bpm (policy.onnx)",
+    "npz": "zoo_dance_120bpm.npz",
+    "in_dim": 61,
+    "out_dim": 14,
+    "size_kb": 719.0,
+    "max_diff": 9.655952453613281e-06,
+    "pc_infer_ms": 0.0587
+  },
+  {
+    "name": "zoo_flamingo (policy.onnx)",
+    "npz": "zoo_flamingo.npz",
+    "in_dim": 61,
+    "out_dim": 14,
+    "size_kb": 720.4,
+    "max_diff": 5.4836273193359375e-06,
+    "pc_infer_ms": 0.0773
+  },
+  {
+    "name": "zoo_got_talent (policy.onnx)",
+    "npz": "zoo_got_talent.npz",
+    "in_dim": 61,
+    "out_dim": 14,
+    "size_kb": 720.1,
+    "max_diff": 3.337860107421875e-06,
+    "pc_infer_ms": 0.1072
+  },
+  {
+    "name": "zoo_groove_dance (policy.onnx)",
+    "npz": "zoo_groove_dance.npz",
+    "in_dim": 61,
+    "out_dim": 14,
+    "size_kb": 719.4,
+    "max_diff": 1.1444091796875e-05,
+    "pc_infer_ms": 0.0892
+  },
+  {
+    "name": "zoo_happy_hop (policy.onnx)",
+    "npz": "zoo_happy_hop.npz",
+    "in_dim": 61,
+    "out_dim": 14,
+    "size_kb": 719.0,
+    "max_diff": 3.337860107421875e-06,
+    "pc_infer_ms": 0.0902
+  },
+  {
+    "name": "zoo_headstand (policy.onnx)",
+    "npz": "zoo_headstand.npz",
+    "in_dim": 61,
+    "out_dim": 14,
+    "size_kb": 721.1,
+    "max_diff": 4.76837158203125e-06,
+    "pc_infer_ms": 0.0826
+  },
+  {
+    "name": "zoo_headstand_split (policy.onnx)",
+    "npz": "zoo_headstand_split.npz",
+    "in_dim": 61,
+    "out_dim": 14,
+    "size_kb": 721.4,
+    "max_diff": 1.1444091796875e-05,
+    "pc_infer_ms": 0.1113
+  },
+  {
+    "name": "zoo_hop_once (policy.onnx)",
+    "npz": "zoo_hop_once.npz",
+    "in_dim": 61,
+    "out_dim": 14,
+    "size_kb": 720.0,
+    "max_diff": 3.635883331298828e-06,
+    "pc_infer_ms": 0.0823
+  },
+  {
+    "name": "zoo_long_jump (policy.onnx)",
+    "npz": "zoo_long_jump.npz",
+    "in_dim": 61,
+    "out_dim": 14,
+    "size_kb": 721.7,
+    "max_diff": 5.066394805908203e-06,
+    "pc_infer_ms": 0.0987
+  },
+  {
+    "name": "zoo_moonwalk (policy.onnx)",
+    "npz": "zoo_moonwalk.npz",
+    "in_dim": 61,
+    "out_dim": 14,
+    "size_kb": 720.5,
+    "max_diff": 4.589557647705078e-06,
+    "pc_infer_ms": 0.0925
+  },
+  {
+    "name": "zoo_peck_seeds (policy.onnx)",
+    "npz": "zoo_peck_seeds.npz",
+    "in_dim": 61,
+    "out_dim": 14,
+    "size_kb": 719.5,
+    "max_diff": 5.7220458984375e-06,
+    "pc_infer_ms": 0.0621
+  },
+  {
+    "name": "zoo_play_dead (policy.onnx)",
+    "npz": "zoo_play_dead.npz",
+    "in_dim": 61,
+    "out_dim": 14,
+    "size_kb": 720.9,
+    "max_diff": 3.814697265625e-06,
+    "pc_infer_ms": 0.103
+  },
+  {
+    "name": "zoo_polite_bow (policy.onnx)",
+    "npz": "zoo_polite_bow.npz",
+    "in_dim": 61,
+    "out_dim": 14,
+    "size_kb": 719.1,
+    "max_diff": 1.33514404296875e-05,
+    "pc_infer_ms": 0.0898
+  },
+  {
+    "name": "zoo_pollen_roller_crouch (roller_crouch.onnx)",
+    "npz": "zoo_pollen_roller_crouch.npz",
+    "in_dim": 61,
+    "out_dim": 14,
+    "size_kb": 719.0,
+    "max_diff": 8.58306884765625e-06,
+    "pc_infer_ms": 0.1089
+  },
+  {
+    "name": "zoo_pollen_velstand (velstand.onnx)",
+    "npz": "zoo_pollen_velstand.npz",
+    "in_dim": 61,
+    "out_dim": 14,
+    "size_kb": 721.9,
+    "max_diff": 1.9073486328125e-05,
+    "pc_infer_ms": 0.1038
+  },
+  {
+    "name": "zoo_running (policy.onnx)",
+    "npz": "zoo_running.npz",
+    "in_dim": 61,
+    "out_dim": 14,
+    "size_kb": 722.1,
+    "max_diff": 0.00018310546875,
+    "pc_infer_ms": 0.0889
+  },
+  {
+    "name": "zoo_side_roll_left (policy.onnx)",
+    "npz": "zoo_side_roll_left.npz",
+    "in_dim": 61,
+    "out_dim": 14,
+    "size_kb": 721.2,
+    "max_diff": 1.1444091796875e-05,
+    "pc_infer_ms": 0.1084
+  },
+  {
+    "name": "zoo_side_roll_right (policy.onnx)",
+    "npz": "zoo_side_roll_right.npz",
+    "in_dim": 61,
+    "out_dim": 14,
+    "size_kb": 721.2,
+    "max_diff": 1.1444091796875e-05,
+    "pc_infer_ms": 0.0756
+  },
+  {
+    "name": "zoo_sprint_2m (policy.onnx)",
+    "npz": "zoo_sprint_2m.npz",
+    "in_dim": 61,
+    "out_dim": 14,
+    "size_kb": 719.5,
+    "max_diff": 3.1925737857818604e-06,
+    "pc_infer_ms": 0.1064
+  }
+]

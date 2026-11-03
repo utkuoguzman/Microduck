@@ -1,0 +1,57 @@
+{
+  "head": {
+    "docType": "1",
+    "editorVersion": "6.5.40",
+    "newgId": true,
+    "c_para": {
+      "Title": "Microduck / XGO-Duck Main System Schematic (ESP32 DevKit V1 + Pi Zero W v1.1 + 15x Feetech 1910 + Whistle S2T)",
+      "Company": "Microduck Embodied RL Suite",
+      "Sheet": "1/1",
+      "Author": "Antigravity Pair-Programmer"
+    },
+    "x": "0",
+    "y": "0"
+  },
+  "canvas": "CA~2000~1400~#FFFFFF~yes~#E2E8F0~10~100~100~line~10~pixel~5~0~0",
+  "shape": [
+    "T~L~120~70~0~#0f172a~~20pt~bold~~0~MICRODUCK / XGO-DUCK \u2014 MAIN SYSTEM SCHEMATIC (ESP32 DEVKIT V1 + PI ZERO W v1.1 + 15x FEETECH HD-1910M)~1~start~gge10~0~",
+    "T~L~120~105~0~#475569~~11pt~~~0~1. Power & Burn-Proof 5V Isolation | 2. 30-Pin ESP32 DevKit V1 | 3. Pi Zero W v1.1 | 4. 1Mbps Feetech Bus (IDs 10-14, 20-24, 30-34) | 5. IMU + INMP441 Whistle S2T~1~start~gge11~0~",
+    "R~120~150~~~360~200~#0284c7~2~0~#f0f9ff~gge100~0~",
+    "T~L~140~180~0~#0369a1~~12pt~bold~~0~U1: MINI360 / MP1584 5V 3A STEP-DOWN (2S LiPo 7.4V -> +5V_MAIN)~1~start~gge101~0~",
+    "T~L~140~215~0~#dc2626~~10pt~bold~~0~BT1: 2S LiPo (7.4V Nom / 8.4V Max) -> F1 (PTC) -> SW1 -> +7.4V_SERVO (Pin 2 ONLY)~1~start~gge102~0~",
+    "T~L~140~245~0~#0f172a~~10pt~~~0~U1 OUT+ (+5.1V) + C1 (1000uF 16V) -> +5V_MAIN (Feeds ESP32 VIN & Pi Zero W Pins 2/4)~1~start~gge103~0~",
+    "R~120~390~~~360~220~#16a34a~2~0~#f0fdf4~gge200~0~",
+    "T~L~140~420~0~#15803d~~12pt~bold~~0~U3: RASPBERRY PI ZERO W (v1.1) (40-PIN J8 HEADER)~1~start~gge201~0~",
+    "T~L~140~455~0~#0f172a~~10pt~~~0~J8 Pin 2/4: +5V_MAIN | J8 Pin 6/9/14: GND~1~start~gge202~0~",
+    "T~L~140~485~0~#15803d~~10pt~bold~~0~J8 Pin 8 (GPIO14 TXD0) -> PI_UART_TX (to ESP32 RX0 / GPIO3 @ 921600 baud)~1~start~gge203~0~",
+    "T~L~140~515~0~#0d9488~~10pt~bold~~0~J8 Pin 10 (GPIO15 RXD0) <- PI_UART_RX (from ESP32 TX0 / GPIO1 @ 921600 baud)~1~start~gge204~0~",
+    "R~540~150~~~380~520~#1e293b~2~0~#f8fafc~gge300~0~",
+    "T~L~560~180~0~#0284c7~~13pt~bold~~0~U2: ESP32 DEVKIT V1 (ESP-WROOM-32 \u00b7 30-PIN)~1~start~gge301~0~",
+    "T~L~560~215~0~#0f172a~~10pt~bold~~0~LEFT HEADER (Pins 1..15):~1~start~gge302~0~",
+    "T~L~560~240~0~#334155~~9pt~~~0~Pin 1 (VIN) <- +5V_MAIN | Pin 2 (GND) <- GND | Pin 6 (D27) <- BTN_PTT~1~start~gge303~0~",
+    "T~L~560~265~0~#7c3aed~~9pt~bold~~0~Pin 7 (D26) -> MIC_WS | Pin 8 (D25) -> MIC_SCK | Pin 9 (D33) <- MIC_SD~1~start~gge304~0~",
+    "T~L~560~290~0~#d97706~~9pt~~~0~Pin 12 (D34 / ADC1_6) <- VBAT_SENSE~1~start~gge305~0~",
+    "T~L~560~330~0~#0f172a~~10pt~bold~~0~RIGHT HEADER (Pins 1..15):~1~start~gge306~0~",
+    "T~L~560~355~0~#e11d48~~9pt~bold~~0~Pin 1 (3V3) -> +3V3 | Pin 2 (GND) <- GND | Pin 4 (D2) -> STATUS_LED~1~start~gge307~0~",
+    "T~L~560~380~0~#0284c7~~9pt~bold~~0~Pin 6 (D16 RX2) <- SERVO_RX2 | Pin 7 (D17 TX2) -> SERVO_TX2 (1 Mbps)~1~start~gge308~0~",
+    "T~L~560~405~0~#16a34a~~9pt~bold~~0~Pin 11 (D21 SDA) <-> IMU_SDA | Pin 14 (D22 SCL) -> IMU_SCL~1~start~gge309~0~",
+    "T~L~560~430~0~#0d9488~~9pt~bold~~0~Pin 12 (RX0) <- PI_UART_TX | Pin 13 (TX0) -> PI_UART_RX~1~start~gge310~0~",
+    "R~980~150~~~440~320~#0284c7~2~0~#ffffff~gge400~0~",
+    "T~L~1000~180~0~#0284c7~~12pt~bold~~0~4. 1 Mbps HALF-DUPLEX BUS & 15x FEETECH HD-1910M SERVOS~1~start~gge401~0~",
+    "T~L~1000~210~0~#0f172a~~10pt~~~0~SERVO_TX2 (D17) --[R1 1kOhm]--+-- FEETECH_DATA_1M (+ R2 10kOhm to +3V3 + SERVO_RX2 D16)~1~start~gge402~0~",
+    "T~L~1000~245~0~#16a34a~~10pt~bold~~0~P1 (Left Leg, F1=3A, C21=220uF): IDs 10, 11, 12, 13, 14 (Pin1=DATA, Pin2=+7.4V_SERVO, Pin3=GND)~1~start~gge403~0~",
+    "T~L~1000~275~0~#0284c7~~10pt~bold~~0~P2 (Right Leg, F2=3A, C23=220uF): IDs 20, 21, 22, 23, 24 (Pin1=DATA, Pin2=+7.4V_SERVO, Pin3=GND)~1~start~gge404~0~",
+    "T~L~1000~305~0~#d97706~~10pt~bold~~0~P3 (Head/Beak, F3=3A, C25=220uF): IDs 30, 31, 32, 33, 34 (Pin1=DATA, Pin2=+7.4V_SERVO, Pin3=GND)~1~start~gge405~0~",
+    "R~980~490~~~440~180~#7c3aed~2~0~#faf5ff~gge500~0~",
+    "T~L~1000~520~0~#7c3aed~~12pt~bold~~0~5. U4: 6-DOF IMU (I2C) & U5: INMP441 I2S MIC (CACTUS WHISTLE S2T)~1~start~gge501~0~",
+    "T~L~1000~550~0~#16a34a~~10pt~~~0~U4 IMU (QMI8658A 0x6B / MPU6050 0x68): VCC=+3V3, GND, SDA=IMU_SDA (D21), SCL=IMU_SCL (D22)~1~start~gge502~0~",
+    "T~L~1000~580~0~#7c3aed~~10pt~bold~~0~U5 INMP441 Mic: VDD=+3V3, GND/LR=GND, SCK=MIC_SCK (D25), WS=MIC_WS (D26), SD=MIC_SD (D33)~1~start~gge503~0~",
+    "T~L~1000~610~0~#ca8a04~~10pt~bold~~0~SW2 Push-to-Talk Button: BTN_PTT (D27) to GND~1~start~gge504~0~"
+  ],
+  "BBox": {
+    "x": 80,
+    "y": 50,
+    "width": 1400,
+    "height": 680
+  }
+}

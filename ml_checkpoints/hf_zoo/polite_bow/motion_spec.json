@@ -1,0 +1,62 @@
+{
+  "schema_version": "0.1",
+  "identity": {
+    "name": "polite-bow",
+    "display_name": "Polite Bow",
+    "description": "Small, gentle bow with head and body lowering, returning to standing"
+  },
+  "start_state": "standing",
+  "end_state": "standing",
+  "targets": [
+    {
+      "type": "body_height",
+      "relative": -0.1
+    },
+    {
+      "type": "head_orientation",
+      "pitch_deg": 15.0,
+      "roll_deg": null,
+      "yaw_deg": null,
+      "tolerance_deg": 5.0
+    },
+    {
+      "type": "pose",
+      "name": "standing"
+    }
+  ],
+  "constraints": [
+    {
+      "type": "feet_contact",
+      "value": "both"
+    },
+    {
+      "type": "ground_contact",
+      "allowed_parts": [
+        "feet"
+      ]
+    }
+  ],
+  "timing": {
+    "style": "slewed",
+    "expected_duration_s": 2.0,
+    "hold_s": 0.5
+  },
+  "safety": {
+    "allow_fall": false,
+    "allow_head_contact": false,
+    "allow_body_contact": false,
+    "aggressiveness": "gentle"
+  },
+  "training": {
+    "difficulty": "simple",
+    "terrain": "flat",
+    "backlash": true,
+    "budget": "small"
+  },
+  "generation": {
+    "mode": "guided",
+    "allow_custom_mdp": false
+  },
+  "symmetric": true,
+  "repeatable": true
+}

@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "name": "microduck-long-jump",
+  "task": "Mjlab-PlatformJump-MicroDuck",
+  "policy_file": "policy.onnx",
+  "checkpoint_file": "checkpoint.pt",
+  "stored_iteration": 15250,
+  "research_run": "p1",
+  "policy_sha256": "cbd366e4ec6b95dd989d795cb73e1cf28731f85114c60368542dc9605a46fe06",
+  "checkpoint_sha256": "114ab38724b1bea789b0d3f12a1a18a5981b40572863117e212a2a0601f9ed4a",
+  "source": {
+    "repository": "Vottivott/microduck-playground",
+    "branch": "main",
+    "revision": "b6aed572587b52e41a452a9b2be517c95d2b3d96",
+    "public_base": "4289c236864ea7d8f9a72951667b31c4fcd4b935"
+  },
+  "profiles": {
+    "long-jump": {
+      "task": "PlatformJump",
+      "environment": {
+        "MICRODUCK_PJ_GAP": "0.30",
+        "MICRODUCK_PJ_DROP": "0.25"
+      }
+    }
+  },
+  "status": "simulation-only-research",
+  "hardware_validated": false,
+  "robustness_claim": false,
+  "media": {
+    "preview": "media/preview.mp4",
+    "preview_sha256": "db6af879e8bc0d2a1b108772f004eb43cb5e37ee77c685a1fc77941116243db5",
+    "source_montage_sha256": "60626e213e5513b85ed6d7a84988040c782e83ebbae84e326529a7f25e7c782c",
+    "interval_s": [
+      0,
+      1.56
+    ],
+    "edited_research_montage": true,
+    "exact_checkpoint_seed_mapping_verified": false,
+    "center_crop": {
+      "width": 720,
+      "height": 720,
+      "x": 120,
+      "y": 0
+    },
+    "fps": 50,
+    "frames": 78,
+    "uncropped_excerpt_sha256": "36730fc2d71d4ee2da96c10d8982823e40dca262448d0b48b7c07623f5aaeebf"
+  },
+  "additional_policy_switching": false,
+  "onnx_export_path": "scripts/export.py",
+  "simulation_contact_capacity": 200,
+  "source_note": "Public two-policy split; original task physics and per-policy continuation settings unchanged from validated preparation. Pillar release excluded.",
+  "warning": "Simulation only; not yet validated on hardware.",
+  "training_continuation": {
+    "repository": "Vottivott/microduck-playground",
+    "branch": "main",
+    "revision": "b6aed572587b52e41a452a9b2be517c95d2b3d96",
+    "profile": "long-jump",
+    "recipe": "training/resume.json",
+    "original_release_binaries_unchanged": true,
+    "guide": "TRAINING.md",
+    "validated_envs": 64,
+    "validated_additional_iterations": 5,
+    "exact_historical_replay": false
+  }
+}
